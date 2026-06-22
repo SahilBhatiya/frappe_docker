@@ -1,0 +1,530 @@
+{%- set CO = {
+  "name": "Adarsh Motor Stores",
+  "addr": ["Opp, Rajkamal Petrol Pump,", "Highway Road, Mehsana 384002"],
+  "mobile": "9825883600 / 9427677670",
+  "phone": "02762 251800",
+  "dealer": "Authorised Dealer For : MRF TYRE & CEAT TYRE",
+  "gstin": "24AADFA2635A1ZA",
+  "state": "Gujarat, Code : 24",
+  "bank": "HDFC Bank",
+  "ac": "02388620000050",
+  "ifsc": "Mehsana & HDFC0000238"
+} -%}
+{%- macro money(v) -%}{{ "{:,.2f}".format(v|float) }}{%- endmacro -%}
+{%- set hsn = {} -%}
+{%- set order = [] -%}
+{%- for it in doc.items -%}
+  {%- set h = it.gst_hsn_code or "-" -%}
+  {%- if h not in hsn -%}
+    {%- set _ = order.append(h) -%}
+    {%- set _ = hsn.update({h: {"taxable":0.0,"cgst":0.0,"sgst":0.0,"igst":0.0,"cr":0.0,"sr":0.0,"ir":0.0}}) -%}
+  {%- endif -%}
+  {%- set _ = hsn[h].update({"taxable": hsn[h]["taxable"] + (it.net_amount|float)}) -%}
+{%- endfor -%}
+{%- for tax in doc.taxes -%}
+  {%- set acc = (tax.account_head or "")|lower -%}
+  {%- set det = json.loads(tax.item_wise_tax_detail or "{}") -%}
+  {%- for it in doc.items -%}
+    {%- set h = it.gst_hsn_code or "-" -%}
+    {%- if it.item_code in det -%}
+      {%- set ra = det[it.item_code] -%}
+      {%- if "cgst" in acc -%}{%- set _ = hsn[h].update({"cgst": hsn[h]["cgst"] + (ra[1]|float), "cr": ra[0]}) -%}
+      {%- elif "sgst" in acc -%}{%- set _ = hsn[h].update({"sgst": hsn[h]["sgst"] + (ra[1]|float), "sr": ra[0]}) -%}
+      {%- elif "igst" in acc -%}{%- set _ = hsn[h].update({"igst": hsn[h]["igst"] + (ra[1]|float), "ir": ra[0]}) -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+{%- set t_taxable = doc.net_total|float -%}
+{%- set t_cgst = (hsn.values()|map(attribute="cgst")|sum) -%}
+{%- set t_sgst = (hsn.values()|map(attribute="sgst")|sum) -%}
+{%- set t_igst = (hsn.values()|map(attribute="igst")|sum) -%}
+{%- set t_tax = t_cgst + t_sgst + t_igst -%}
+{%- set min_rows = 5 -%}
+{%- set blank_rows = min_rows - (doc.items|length) if (doc.items|length) < min_rows else 0 -%}
+
+<style>
+.print-format {
+  margin:0mm;
+  padding:0mm !important;
+}
+.page-break {
+  display:block !important;
+  page-break-after:auto !important;
+  break-after:auto !important;
+  min-height:0 !important;
+}
+#footer-html,
+.print-format-footer {
+  display:none !important;
+  height:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+@page {
+  size:A4;
+  margin:0;
+}
+body {
+  margin:0;
+  background:#fff;
+}
+.canvas-invoice {
+  position:relative;
+  width:200mm;
+  height:260mm;
+  box-sizing:border-box;
+  color:#050505;
+  font-family:Arial, Helvetica, sans-serif;
+  font-size:3.45mm;
+  line-height:1.2;
+  overflow:hidden;
+  letter-spacing:0;
+}
+.title {
+  position:absolute;
+  left:0;
+  top:5mm;
+  width:200mm;
+  text-align:center;
+  font-size:10.1mm;
+  line-height:10.8mm;
+  font-weight:900;
+  letter-spacing:1.1mm;
+}
+.title:before,
+.title:after {
+  content:"";
+  display:inline-block;
+  width:17mm;
+  border-top:.25mm solid #8b8b8b;
+  vertical-align:middle;
+  margin:0 5mm 2.1mm;
+}
+.copy {
+  position:absolute;
+  top:7.5mm;
+  right:5mm;
+  font-size:3mm;
+  font-style:italic;
+  font-weight:700;
+}
+.box {
+  position:absolute;
+  border:.28mm solid #777;
+  border-radius:2.1mm;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.pill {
+  display:inline-block;
+  min-width:31mm;
+  padding:1.6mm 3mm 1.3mm;
+  background:#e9e9e9;
+  border-radius:0 0 1.5mm 0;
+  font-size:3.35mm;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.seller {
+  left:7mm;
+  top:22mm;
+  width:95mm;
+  height:48mm;
+}
+.logo-area {
+  position:absolute;
+  left:7mm;
+  top:7mm;
+  width:24mm;
+  text-align:center;
+}
+.round-logo {
+  max-width:18mm;
+  max-height:18mm;
+  display:block;
+  margin:0 auto 2mm;
+  filter:grayscale(100%);
+}
+.mrf-logo {
+  max-width:25mm;
+  max-height:10mm;
+  display:block;
+  margin:0 auto;
+  filter:grayscale(100%);
+}
+.seller-text {
+  position:absolute;
+  left:35mm;
+  top:6mm;
+  right:5mm;
+}
+.seller-name {
+  font-size:5.75mm;
+  line-height:6.05mm;
+  font-weight:900;
+  margin-bottom:2mm;
+}
+.seller-line { font-size:3.45mm; margin:.35mm 0; }
+.seller-small { font-size:3mm; margin-top:2.2mm; white-space:nowrap; }
+.details {
+  left:105mm;
+  top:22mm;
+  width:95mm;
+  height:48mm;
+}
+.dline {
+  position:absolute;
+  left:0;
+  right:0;
+  border-top:.25mm solid #bcbcbc;
+}
+.drow {
+  position:absolute;
+  left:3mm;
+  right:3mm;
+  font-size:3.35mm;
+  white-space:nowrap;
+}
+.drow b { font-weight:900; }
+.dcolon { display:inline-block; width:5mm; text-align:center; }
+.dv1 { position:absolute; left:35mm; top:0; font-weight:900; }
+.dl2 { position:absolute; left:60mm; top:0; border-left:.25mm solid #cfcfcf; padding-left:4mm; }
+.dv2 { position:absolute; left:78mm; top:0; font-weight:900; }
+.buyer {
+  left:7mm;
+  top:72mm;
+  width:193mm;
+  height:26mm;
+  padding-left:2.8mm;
+}
+.buyer-name {
+  font-size:4.8mm;
+  font-weight:900;
+  margin:3mm 0 .7mm;
+}
+.buyer-line { font-size:3.7mm; margin:.7mm 0; }
+.items {
+  left:7mm;
+  top:99mm;
+  width:193mm;
+  height:72mm;
+}
+.items table {
+  width:100%;
+  height:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  font-size:3.45mm;
+}
+.items th,
+.items td {
+  border-right:.25mm solid #c8c8c8;
+  border-bottom:.25mm solid #d6d6d6;
+  padding:2mm 2.4mm;
+  vertical-align:top;
+}
+.items th {
+  height:10mm;
+  background:#fafafa;
+  text-align:center;
+  font-weight:500;
+}
+.items th:last-child,
+.items td:last-child { border-right:0; }
+.items .sl { width:9mm; text-align:center; }
+.items .desc { width:75mm; }
+.items .hsn { width:21mm; text-align:center; }
+.items .qty { width:24mm; text-align:center; font-weight:800; }
+.items .rate { width:24mm; text-align:right; }
+.items .per { width:15mm; text-align:center; }
+.items .amount { width:24mm; text-align:right; font-weight:900; }
+.data-row td { height:11.5mm; }
+.blank-row td { height:9.2mm; }
+.item-title { font-weight:900; font-size:3.75mm; line-height:4mm; }
+.item-sub { font-style:italic; margin-top:.8mm; font-size:3.45mm; }
+.total-row td {
+  height:8mm;
+  vertical-align:middle;
+  border-bottom:0;
+  font-weight:900;
+}
+.words-box {
+  left:7mm;
+  top:169mm;
+  width:193mm;
+  height:18mm;
+}
+.words-left {
+  position:absolute;
+  left:3mm;
+  top:2.6mm;
+  width:170mm;
+}
+.words-bold {
+  display:block;
+  margin-top:1.6mm;
+  font-weight:900;
+  font-size:3.65mm;
+}
+.eoe {
+  position:absolute;
+  right:0;
+  top:0;
+  width:28mm;
+  height:100%;
+  border-left:.25mm solid #c7c7c7;
+  text-align:center;
+  padding-top:7mm;
+  box-sizing:border-box;
+}
+.tax {
+  left:7mm;
+  top:189mm;
+  width:193mm;
+  height:40mm;
+}
+.tax table {
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  text-align:center;
+  font-size:3.45mm;
+}
+.tax th,
+.tax td {
+  border-top:.25mm solid #bdbdbd;
+  border-right:.25mm solid #c8c8c8;
+  padding:2.05mm 1.8mm;
+}
+.tax th:last-child,
+.tax td:last-child { border-right:0; }
+.tax th { background:#fafafa; font-weight:800; }
+.tax-total td { font-weight:900; }
+.tax-words {
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  border-top:.25mm solid #c8c8c8;
+  padding:2.3mm 3mm;
+  box-sizing:border-box;
+}
+.declaration {
+  left:7mm;
+  top:222mm;
+  width:81mm;
+  height:36mm;
+}
+.declaration p {
+  margin:4.6mm 3mm 0;
+  font-size:3.35mm;
+}
+.bank {
+  left:91mm;
+  top:222mm;
+  width:109mm;
+  height:36mm;
+}
+.bank-lines {
+  position:absolute;
+  left:3mm;
+  top:8mm;
+  width:72mm;
+  font-size:3.45mm;
+}
+.bank-line {
+  display:grid;
+  grid-template-columns:25mm 3mm 1fr;
+  margin:1mm 0;
+}
+.for-line {
+  text-align:center;
+  font-weight:900;
+  margin-top:1.7mm;
+}
+.signature {
+  position:absolute;
+  right:3mm;
+  top:5mm;
+  width:34mm;
+  height:31mm;
+  border-left:.25mm dashed #b8b8b8;
+  text-align:center;
+}
+.signature img {
+  max-width:20mm;
+  max-height:18mm;
+  display:block;
+  margin:2mm auto 3mm;
+  filter:grayscale(100%);
+}
+.sig-line {
+  width:27mm;
+  margin:0 auto 2.1mm;
+  border-top:.25mm solid #777;
+}
+.footer {
+  position:absolute;
+  left:7mm;
+  right:7mm;
+  top:255mm;
+  text-align:center;
+  font-size:3.25mm;
+}
+.footer:before,
+.footer:after {
+  content:"";
+  display:inline-block;
+  width:72mm;
+  border-top:.25mm dashed #999;
+  vertical-align:middle;
+  margin:0 2.5mm;
+}
+</style>
+
+<div class="canvas-invoice">
+  <div class="title">GST TAX INVOICE</div>
+  <div class="copy">ORIGINAL FOR RECIPIENT</div>
+
+  <div class="box seller">
+    <div class="logo-area">
+      <img class="round-logo" src="__ADARSH_STAMP__">
+      <img class="mrf-logo" src="__MRF_LOGO__">
+    </div>
+    <div class="seller-text">
+      <div class="seller-name">{{ CO.name }}</div>
+      {% for a in CO.addr %}<div class="seller-line">{{ a }}</div>{% endfor %}
+      <div class="seller-line">Mo : {{ CO.mobile }}</div>
+      <div class="seller-line">Telephone No : {{ CO.phone }}</div>
+      <div class="seller-small">{{ CO.dealer }}</div>
+      <div class="seller-line">GSTIN/UIN : <b>{{ CO.gstin }}</b></div>
+      <div class="seller-line">State Name : {{ CO.state }}</div>
+    </div>
+  </div>
+
+  <div class="box details">
+    <div class="pill">Invoice Details</div>
+    <div class="dline" style="top:10mm;"></div>
+    <div class="drow" style="top:14mm;">
+      <span>Invoice No.</span><span class="dcolon">:</span><span class="dv1">{{ doc.name }}</span>
+      <span class="dl2">Dated</span><span class="dv2">: &nbsp;{{ frappe.utils.formatdate(doc.posting_date, "dd-MMM-yy") }}</span>
+    </div>
+    <div class="dline" style="top:22mm;"></div>
+    <div class="drow" style="top:26mm;"><span>Mode/Terms of Payment</span><span class="dcolon">:</span><span class="dv1">{% if doc.payments %}{{ doc.payments[0].mode_of_payment }}{% else %}Cash{% endif %}</span></div>
+    <div class="dline" style="top:34mm;"></div>
+    <div class="drow" style="top:38mm;">
+      <span>Reference No. & Date</span><span class="dcolon">:</span>
+      <span class="dl2">Other References</span><span class="dv2">:</span>
+    </div>
+    <div class="dline" style="top:45mm;"></div>
+    <div class="drow" style="top:47.2mm;"><span>Terms of Delivery</span><span class="dcolon">:</span></div>
+  </div>
+
+  <div class="box buyer">
+    <div class="pill">Buyer (Bill To)</div>
+    <div class="buyer-name">{{ doc.customer_name or doc.customer }}</div>
+    <div class="buyer-line">{{ doc.contact_mobile or doc.mobile_no or doc.contact_phone or "" }}</div>
+    <div class="buyer-line">State Name&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;{{ CO.state }}</div>
+  </div>
+
+  <div class="box items">
+    <table>
+      <thead>
+        <tr>
+          <th class="sl">Sl.<br>No.</th>
+          <th class="desc">Description of Goods</th>
+          <th class="hsn">HSN/SAC</th>
+          <th class="qty">Quantity</th>
+          <th class="rate">Rate<br>(&#8377;)</th>
+          <th class="per">per</th>
+          <th class="amount">Amount<br>(&#8377;)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in doc.items %}
+        <tr class="data-row">
+          <td class="sl">{{ loop.index }}</td>
+          <td class="desc">
+            <div class="item-title">{{ it.item_name or it.item_code }}</div>
+            {% if it.description and (it.description|striptags|trim) not in [it.item_name, it.item_code] %}
+              <div class="item-sub">{{ it.description|striptags }}</div>
+            {% endif %}
+          </td>
+          <td class="hsn">{{ it.gst_hsn_code or "-" }}</td>
+          <td class="qty">{{ "{:,.0f}".format(it.qty|float) }} {{ it.uom or "" }}</td>
+          <td class="rate">{{ money(it.rate) }}</td>
+          <td class="per">{{ it.uom or "" }}</td>
+          <td class="amount">{{ money(it.amount) }}</td>
+        </tr>
+        {% endfor %}
+        {% for i in range(blank_rows) %}
+        <tr class="blank-row"><td class="sl">{{ (doc.items|length) + loop.index }}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td colspan="3" style="text-align:right;">Total</td>
+          <td class="qty">{{ "{:,.0f}".format(doc.total_qty|float) }} Nos</td>
+          <td colspan="2"></td>
+          <td class="amount">&#8377; {{ money(doc.grand_total) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box words-box">
+    <div class="words-left">Amount Chargeable (in words)<span class="words-bold">{{ frappe.utils.money_in_words(doc.grand_total, doc.currency) }}</span></div>
+    <div class="eoe">E. & O.E</div>
+  </div>
+
+  <div class="box tax">
+    <div class="pill">Tax Summary</div>
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:30mm;">HSN/SAC</th>
+          <th rowspan="2" style="width:33mm;">Taxable<br>Value<br>(&#8377;)</th>
+          <th colspan="2">CGST</th>
+          <th colspan="2">SGST/UTGST</th>
+          <th rowspan="2" style="width:32mm;">Total<br>Tax Amount<br>(&#8377;)</th>
+        </tr>
+        <tr><th>Rate</th><th>Amount (&#8377;)</th><th>Rate</th><th>Amount (&#8377;)</th></tr>
+      </thead>
+      <tbody>
+        {% for h in order %}
+        <tr>
+          <td>{{ h }}</td><td>{{ money(hsn[h]["taxable"]) }}</td>
+          <td>{{ hsn[h]["cr"]|round(0)|int }}%</td><td>{{ money(hsn[h]["cgst"]) }}</td>
+          <td>{{ hsn[h]["sr"]|round(0)|int }}%</td><td>{{ money(hsn[h]["sgst"]) }}</td>
+          <td>{{ money(hsn[h]["cgst"] + hsn[h]["sgst"] + hsn[h]["igst"]) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="tax-total">
+          <td>Total</td><td>{{ money(t_taxable) }}</td><td></td><td>{{ money(t_cgst) }}</td><td></td><td>{{ money(t_sgst) }}</td><td>{{ money(t_tax) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tax-words">Tax Amount (in words) : <b>{{ frappe.utils.money_in_words(t_tax, doc.currency) }}</b></div>
+  </div>
+
+  <div class="box declaration">
+    <div class="pill">Declaration</div>
+    <p>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
+  </div>
+
+  <div class="box bank">
+    <div class="pill">Company's Bank Details</div>
+    <div class="bank-lines">
+      <div class="bank-line"><span>Bank Name</span><span>:</span><b>{{ CO.bank }}</b></div>
+      <div class="bank-line"><span>A/c No.</span><span>:</span><b>{{ CO.ac }}</b></div>
+      <div class="bank-line"><span>Branch & IFS Code</span><span>:</span><b>{{ CO.ifsc }}</b></div>
+      <div class="for-line">for {{ CO.name }}</div>
+    </div>
+    <div class="signature">
+      <img src="__ADARSH_STAMP__">
+      <div class="sig-line"></div>
+      <div>Authorised Signatory</div>
+    </div>
+  </div>
+
+  <div class="footer"><span>This is a Computer Generated Invoice</span></div>
+</div>

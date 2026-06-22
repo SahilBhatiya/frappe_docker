@@ -1,0 +1,55 @@
+@media (max-width: 768px) {
+	:root {
+		--mobile-desk-height: 100dvh;
+	}
+
+	html,
+	body {
+		min-height: 100%;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	body:not(.modal-open) {
+		overflow-y: auto !important;
+		position: static !important;
+	}
+
+	body:not(.modal-open) .main-section,
+	body:not(.modal-open) #body,
+	body:not(.modal-open) .page-container,
+	body:not(.modal-open) .layout-main-section-wrapper {
+		-webkit-overflow-scrolling: touch;
+		touch-action: pan-y;
+	}
+
+	.modal .modal-dialog {
+		margin: 8px;
+		max-height: calc(var(--mobile-desk-height) - 16px);
+	}
+
+	.modal .modal-content {
+		max-height: calc(var(--mobile-desk-height) - 16px);
+	}
+
+	.modal .modal-body {
+		max-height: calc(var(--mobile-desk-height) - 132px);
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		touch-action: pan-y;
+	}
+
+	.gl-detail-dialog-body,
+	.ledger-scroll-wrapper,
+	.datatable,
+	.dt-scrollable,
+	.report-wrapper {
+		-webkit-overflow-scrolling: touch;
+		touch-action: pan-x pan-y;
+	}
+
+	.ledger-scroll-wrapper {
+		max-width: 100%;
+		overflow: auto;
+	}
+}

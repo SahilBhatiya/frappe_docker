@@ -1,0 +1,16 @@
+# Keep the build context small. node_modules is recreated inside the frontend
+# build stage via `yarn install`, so never ship a host copy.
+pos_prime/frontend/node_modules
+pos_prime/**/node_modules
+pos_prime/**/__pycache__
+pos_prime/**/*.pyc
+# Playwright / test artifacts
+pos_prime/frontend/test-results
+pos_prime/frontend/playwright-report
+pos_prime/frontend/blob-report
+# Dev-only env (holds the API token; production build doesn't read it)
+pos_prime/frontend/.env.development
+pos_prime/frontend/.env.local
+pos_prime/frontend/.env.*.local
+# Build/log scratch
+build.log

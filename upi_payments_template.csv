@@ -1,0 +1,2 @@
+date,amount,utr,payer_vpa,payer_name,description,status
+2026-06-08,1250.50,612345678901,customer@upi,Customer Name,Counter QR,SUCCESS

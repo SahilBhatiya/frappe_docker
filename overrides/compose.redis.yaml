@@ -10,10 +10,40 @@ services:
   redis-cache:
     image: redis:8.6-alpine
     restart: unless-stopped
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory-policy
+      - allkeys-lru
+      - --tcp-keepalive
+      - "60"
+      - --hz
+      - "20"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   redis-queue:
     image: redis:8.6-alpine
     restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "no"
+      - --tcp-keepalive
+      - "60"
+      - --hz
+      - "20"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     volumes:
       - redis-queue-data:/data
 

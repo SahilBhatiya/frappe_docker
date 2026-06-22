@@ -1,0 +1,554 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap');
+@import "tw-animate-css";
+@import "shadcn-vue/tailwind.css";
+
+/*
+ ---break---
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Scoped Tailwind Preflight
+ * Since we disable Tailwind's global preflight (to avoid breaking Frappe desk styles),
+ * we manually apply the same resets scoped to our POS containers.
+ */
+#app *,
+#app *::before,
+#app *::after,
+#pos-prime-app *,
+#pos-prime-app *::before,
+#pos-prime-app *::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: theme('borderColor.DEFAULT', currentColor);
+}
+
+#app,
+#pos-prime-app {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  font-family: theme('fontFamily.sans', ui-sans-serif, system-ui, sans-serif);
+  font-feature-settings: theme('fontFamily.sans[1].fontFeatureSettings', normal);
+  font-variation-settings: theme('fontFamily.sans[1].fontVariationSettings', normal);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app hr,
+#pos-prime-app hr {
+  height: 0;
+  color: inherit;
+  border-top-width: 1px;
+}
+
+#app abbr:where([title]),
+#pos-prime-app abbr:where([title]) {
+  text-decoration: underline dotted;
+}
+
+#app h1,
+#app h2,
+#app h3,
+#app h4,
+#app h5,
+#app h6,
+#pos-prime-app h1,
+#pos-prime-app h2,
+#pos-prime-app h3,
+#pos-prime-app h4,
+#pos-prime-app h5,
+#pos-prime-app h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+#app a,
+#pos-prime-app a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+#app b,
+#app strong,
+#pos-prime-app b,
+#pos-prime-app strong {
+  font-weight: bolder;
+}
+
+#app code,
+#app kbd,
+#app samp,
+#app pre,
+#pos-prime-app code,
+#pos-prime-app kbd,
+#pos-prime-app samp,
+#pos-prime-app pre {
+  font-family: theme('fontFamily.mono', ui-monospace, monospace);
+  font-feature-settings: theme('fontFamily.mono[1].fontFeatureSettings', normal);
+  font-variation-settings: theme('fontFamily.mono[1].fontVariationSettings', normal);
+  font-size: 1em;
+}
+
+#app small,
+#pos-prime-app small {
+  font-size: 80%;
+}
+
+#app sub,
+#app sup,
+#pos-prime-app sub,
+#pos-prime-app sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+#app sub,
+#pos-prime-app sub {
+  bottom: -0.25em;
+}
+#app sup,
+#pos-prime-app sup {
+  top: -0.5em;
+}
+
+#app table,
+#pos-prime-app table {
+  text-indent: 0;
+  border-color: inherit;
+  border-collapse: collapse;
+}
+
+#app button,
+#app input,
+#app optgroup,
+#app select,
+#app textarea,
+#pos-prime-app button,
+#pos-prime-app input,
+#pos-prime-app optgroup,
+#pos-prime-app select,
+#pos-prime-app textarea {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+#app button,
+#app select,
+#pos-prime-app button,
+#pos-prime-app select {
+  text-transform: none;
+}
+
+#app button,
+#app input:where([type='button']),
+#app input:where([type='reset']),
+#app input:where([type='submit']),
+#pos-prime-app button,
+#pos-prime-app input:where([type='button']),
+#pos-prime-app input:where([type='reset']),
+#pos-prime-app input:where([type='submit']) {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+
+#app :-moz-focusring,
+#pos-prime-app :-moz-focusring {
+  outline: auto;
+}
+
+#app :-moz-ui-invalid,
+#pos-prime-app :-moz-ui-invalid {
+  box-shadow: none;
+}
+
+#app progress,
+#pos-prime-app progress {
+  vertical-align: baseline;
+}
+
+#app ::-webkit-inner-spin-button,
+#app ::-webkit-outer-spin-button,
+#pos-prime-app ::-webkit-inner-spin-button,
+#pos-prime-app ::-webkit-outer-spin-button {
+  height: auto;
+}
+
+#app [type='search'],
+#pos-prime-app [type='search'] {
+  -webkit-appearance: textfield;
+  outline-offset: -2px;
+}
+
+#app ::-webkit-search-decoration,
+#pos-prime-app ::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+
+#app ::-webkit-file-upload-button,
+#pos-prime-app ::-webkit-file-upload-button {
+  -webkit-appearance: button;
+  font: inherit;
+}
+
+#app summary,
+#pos-prime-app summary {
+  display: list-item;
+}
+
+#app blockquote,
+#app dl,
+#app dd,
+#app h1,
+#app h2,
+#app h3,
+#app h4,
+#app h5,
+#app h6,
+#app hr,
+#app figure,
+#app p,
+#app pre,
+#pos-prime-app blockquote,
+#pos-prime-app dl,
+#pos-prime-app dd,
+#pos-prime-app h1,
+#pos-prime-app h2,
+#pos-prime-app h3,
+#pos-prime-app h4,
+#pos-prime-app h5,
+#pos-prime-app h6,
+#pos-prime-app hr,
+#pos-prime-app figure,
+#pos-prime-app p,
+#pos-prime-app pre {
+  margin: 0;
+}
+
+#app fieldset,
+#pos-prime-app fieldset {
+  margin: 0;
+  padding: 0;
+}
+
+#app legend,
+#pos-prime-app legend {
+  padding: 0;
+}
+
+#app ol,
+#app ul,
+#app menu,
+#pos-prime-app ol,
+#pos-prime-app ul,
+#pos-prime-app menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#app dialog,
+#pos-prime-app dialog {
+  padding: 0;
+}
+
+#app textarea,
+#pos-prime-app textarea {
+  resize: vertical;
+}
+
+#app input::placeholder,
+#app textarea::placeholder,
+#pos-prime-app input::placeholder,
+#pos-prime-app textarea::placeholder {
+  opacity: 1;
+  color: theme('colors.gray.400', #9ca3af);
+}
+
+#app button,
+#app [role="button"],
+#pos-prime-app button,
+#pos-prime-app [role="button"] {
+  cursor: pointer;
+}
+
+#app :disabled,
+#pos-prime-app :disabled {
+  cursor: default;
+}
+
+#app img,
+#app svg,
+#app video,
+#app canvas,
+#app audio,
+#app iframe,
+#app embed,
+#app object,
+#pos-prime-app img,
+#pos-prime-app svg,
+#pos-prime-app video,
+#pos-prime-app canvas,
+#pos-prime-app audio,
+#pos-prime-app iframe,
+#pos-prime-app embed,
+#pos-prime-app object {
+  display: block;
+  vertical-align: middle;
+}
+
+#app img,
+#app video,
+#pos-prime-app img,
+#pos-prime-app video {
+  max-width: 100%;
+  height: auto;
+}
+
+#app [hidden],
+#pos-prime-app [hidden] {
+  display: none;
+}
+
+/*
+ * Standalone SPA mode — only apply when #app exists (not inside desk).
+ * In desk mode (#pos-prime-app), the desk controls html/body styles.
+ */
+html:has(#app),
+html:has(#app) body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+html:has(#app) body {
+  background-color: #f9fafb;
+}
+
+/* Tell the browser to render native elements in dark */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+html:has(#app) [data-theme="dark"] body {
+  background-color: #0f0f0f;
+}
+
+/* Smooth scrolling for POS scroll containers */
+#app *,
+#pos-prime-app * {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for webkit browsers */
+#app ::-webkit-scrollbar,
+#pos-prime-app ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+#app ::-webkit-scrollbar-track,
+#pos-prime-app ::-webkit-scrollbar-track {
+  background: transparent;
+}
+#app ::-webkit-scrollbar-thumb,
+#pos-prime-app ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+#app ::-webkit-scrollbar-thumb:hover,
+#pos-prime-app ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode scrollbar */
+[data-theme="dark"] #app ::-webkit-scrollbar-thumb,
+[data-theme="dark"] #pos-prime-app ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+[data-theme="dark"] #app ::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] #pos-prime-app ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Firefox scrollbar */
+#app *,
+#pos-prime-app * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+}
+[data-theme="dark"] #app *,
+[data-theme="dark"] #pos-prime-app * {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+/* Focus visible outline */
+#app *:focus-visible,
+#pos-prime-app *:focus-visible {
+  outline: 2px solid rgb(59 130 246);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Selection color */
+#app ::selection,
+#pos-prime-app ::selection {
+  background-color: rgb(191 219 254);
+  color: rgb(30 64 175);
+}
+[data-theme="dark"] #app ::selection,
+[data-theme="dark"] #pos-prime-app ::selection {
+  background-color: rgb(30 64 175);
+  color: rgb(219 234 254);
+}
+
+/* ERPNext-style card elevation (uses Frappe desk CSS variables when available) */
+.pos-card {
+  background-color: var(--fg-color, #ffffff);
+  box-shadow: var(--shadow-base, 0 1px 10px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.1));
+}
+[data-theme="dark"] .pos-card {
+  background-color: var(--fg-color, #1f2937);
+  box-shadow: var(--shadow-base, 0 1px 10px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  #app {
+    overflow: visible !important;
+    height: auto !important;
+  }
+}
+
+/* Input number spinner hide */
+#app input[type="number"]::-webkit-inner-spin-button,
+#app input[type="number"]::-webkit-outer-spin-button,
+#pos-prime-app input[type="number"]::-webkit-inner-spin-button,
+#pos-prime-app input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#app input[type="number"],
+#pos-prime-app input[type="number"] {
+  -moz-appearance: textfield;
+}
+/*
+ ---break---
+ */
+@layer base {
+  .theme {
+    --font-sans: 'Geist Variable', sans-serif;
+    --font-heading: var(--font-sans);
+  }
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+  * {
+    @apply border-border;
+    /* Tailwind v3: `outline-ring/50` is a v4-only utility. Apply the same
+       intent (a half-opacity ring-coloured outline) as raw CSS instead. */
+    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
+  }
+  body {
+    @apply bg-background text-foreground;
+    @apply font-sans;
+  }
+}
+/*
+ ---break---
+ */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

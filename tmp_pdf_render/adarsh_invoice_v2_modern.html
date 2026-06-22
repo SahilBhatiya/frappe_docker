@@ -1,0 +1,622 @@
+{%- set CO = {
+  "name": "Adarsh Motor Stores",
+  "addr": ["Opp. Rajkamal Petrol Pump,", "Highway Road, Mehsana 384002"],
+  "mobile": "9825883600 / 9427677670",
+  "phone": "02762 251800",
+  "dealer": "Authorised Dealer For : MRF TYRE & CEAT TYRE",
+  "gstin": "24AADFA2635A1ZA",
+  "state": "Gujarat, Code : 24",
+  "bank": "HDFC Bank",
+  "ac": "02388620000050",
+  "ifsc": "Mehsana & HDFC0000238"
+} -%}
+{%- macro money(v) -%}{{ "{:,.2f}".format(v|float) }}{%- endmacro -%}
+{%- set hsn = {} -%}
+{%- set order = [] -%}
+{%- for it in doc.items -%}
+  {%- set h = it.gst_hsn_code or "-" -%}
+  {%- if h not in hsn -%}
+    {%- set _ = order.append(h) -%}
+    {%- set _ = hsn.update({h: {"taxable":0.0,"cgst":0.0,"sgst":0.0,"igst":0.0,"cr":0.0,"sr":0.0,"ir":0.0}}) -%}
+  {%- endif -%}
+  {%- set _ = hsn[h].update({"taxable": hsn[h]["taxable"] + (it.net_amount|float)}) -%}
+{%- endfor -%}
+{%- for tax in doc.taxes -%}
+  {%- set acc = (tax.account_head or "")|lower -%}
+  {%- set det = json.loads(tax.item_wise_tax_detail or "{}") -%}
+  {%- for it in doc.items -%}
+    {%- set h = it.gst_hsn_code or "-" -%}
+    {%- if it.item_code in det -%}
+      {%- set ra = det[it.item_code] -%}
+      {%- if "cgst" in acc -%}{%- set _ = hsn[h].update({"cgst": hsn[h]["cgst"] + (ra[1]|float), "cr": ra[0]}) -%}
+      {%- elif "sgst" in acc -%}{%- set _ = hsn[h].update({"sgst": hsn[h]["sgst"] + (ra[1]|float), "sr": ra[0]}) -%}
+      {%- elif "igst" in acc -%}{%- set _ = hsn[h].update({"igst": hsn[h]["igst"] + (ra[1]|float), "ir": ra[0]}) -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+{%- set t_taxable = doc.net_total|float -%}
+{%- set t_cgst = (hsn.values()|map(attribute="cgst")|sum) -%}
+{%- set t_sgst = (hsn.values()|map(attribute="sgst")|sum) -%}
+{%- set t_igst = (hsn.values()|map(attribute="igst")|sum) -%}
+{%- set t_tax = t_cgst + t_sgst + t_igst -%}
+{%- set min_rows = 3 -%}
+{%- set blank_rows = min_rows - (doc.items|length) if (doc.items|length) < min_rows else 0 -%}
+
+<style>
+.print-format {
+  margin: 0mm;
+  padding: 0mm !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+}
+.page-break {
+  display: block !important;
+  page-break-after: auto !important;
+  break-after: auto !important;
+}
+#footer-html,
+.print-format-footer {
+  display: none !important;
+}
+@page {
+  size: A4;
+  margin: 0;
+}
+.modern-invoice,
+.modern-invoice * {
+  box-sizing: border-box;
+}
+.modern-invoice {
+  width: 198mm;
+  zoom: 0.95;
+  margin: 0 auto;
+  padding: 4mm 5mm;
+  background: #ffffff;
+  color: #1c1c1c;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  letter-spacing: 0;
+}
+.modern-invoice table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.modern-invoice .layout-table td {
+  border: 0;
+  padding: 0;
+  vertical-align: top;
+}
+.modern-invoice .top-table {
+  margin-bottom: 8px;
+}
+.modern-invoice .title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 850;
+  letter-spacing: 0.2px;
+}
+.modern-invoice .title-sub {
+  margin-top: 5px;
+  font-size: 9.5px;
+  color: #666666;
+}
+.modern-invoice .copy-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+.modern-invoice .copy {
+  display: inline-block;
+  background: #f7f7f7;
+  border: 1px solid #e8e8e8;
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-size: 9.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.modern-invoice .hero-table {
+  margin-bottom: 7px;
+}
+.modern-invoice .hero-left {
+  width: 54%;
+  padding-right: 5px !important;
+}
+.modern-invoice .hero-right {
+  width: 46%;
+  padding-left: 5px !important;
+}
+.modern-invoice .card {
+  background: #f7f7f7;
+  border: 1px solid #e8e8e8;
+  border-radius: 17px;
+}
+.modern-invoice .company-card {
+  padding: 10px;
+  min-height: 108px;
+}
+.modern-invoice .company-table td {
+  border: 0;
+  padding: 0;
+  vertical-align: top;
+}
+.modern-invoice .logo-cell {
+  width: 68px;
+}
+.modern-invoice .logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+  text-align: center;
+  line-height: 58px;
+}
+.modern-invoice .logo img {
+  max-width: 50px;
+  max-height: 50px;
+  filter: grayscale(100%);
+  vertical-align: middle;
+}
+.modern-invoice .company-name {
+  font-size: 15px;
+  font-weight: 850;
+  margin-bottom: 4px;
+}
+.modern-invoice .small {
+  font-size: 9.7px;
+  line-height: 1.32;
+}
+.modern-invoice .invoice-card {
+  padding: 4px;
+}
+.modern-invoice .info-table {
+  border-collapse: separate;
+  border-spacing: 4px;
+}
+.modern-invoice .info-box {
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 6px 8px !important;
+  min-height: 34px;
+  width: 50%;
+}
+.modern-invoice .info-box-full {
+  background: #ffffff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 6px 8px !important;
+  min-height: 34px;
+}
+.modern-invoice .mi-label {
+  font-size: 8.8px;
+  color: #666666;
+  margin-bottom: 3px;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  display: block !important;
+  padding: 0 !important;
+}
+.modern-invoice .mi-value {
+  font-size: 10.7px;
+  font-weight: 800;
+}
+.modern-invoice .buyer-card {
+  border: 1px solid #d8d8d8;
+  border-radius: 17px;
+  padding: 8px 11px;
+  margin-bottom: 7px;
+  background: #ffffff;
+}
+.modern-invoice .buyer-table td {
+  border: 0;
+  padding: 0;
+  vertical-align: middle;
+}
+.modern-invoice .buyer-tag-cell {
+  width: 104px;
+  padding-right: 13px !important;
+}
+.modern-invoice .buyer-tag {
+  background: #f7f7f7;
+  border-radius: 12px;
+  padding: 8px;
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.25;
+}
+.modern-invoice .buyer-name {
+  font-size: 13px;
+  font-weight: 850;
+  margin-bottom: 3px;
+}
+.modern-invoice .items,
+.modern-invoice .tax {
+  border: 1px solid #d8d8d8;
+  border-radius: 17px;
+  overflow: hidden;
+  margin-bottom: 5px;
+  background: #ffffff;
+}
+.modern-invoice .data-table {
+  font-size: 9.6px;
+}
+.modern-invoice .data-table th {
+  background: #f7f7f7;
+  padding: 5px 5px;
+  font-weight: 800;
+  border-bottom: 1px solid #d8d8d8;
+}
+.modern-invoice .data-table td {
+  padding: 5px 5px;
+  border-bottom: 1px solid #e8e8e8;
+  vertical-align: top;
+}
+.modern-invoice .data-table tbody tr:nth-child(even) td {
+  background: #fbfbfb;
+}
+.modern-invoice .data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.modern-invoice .data-table th:not(:last-child),
+.modern-invoice .data-table td:not(:last-child) {
+  border-right: 1px solid #e8e8e8;
+}
+.modern-invoice .center {
+  text-align: center;
+}
+.modern-invoice .right {
+  text-align: right;
+}
+.modern-invoice .item-name {
+  font-size: 10px;
+  font-weight: 850;
+}
+.modern-invoice .item-code {
+  margin-top: 2px;
+  font-size: 9px;
+  font-style: italic;
+  color: #444;
+}
+.modern-invoice .bold {
+  font-weight: 850;
+}
+.modern-invoice .total-row td {
+  background: #eeeeee !important;
+  font-weight: 850;
+}
+.modern-invoice .summary-table {
+  margin-bottom: 5px;
+}
+.modern-invoice .summary-main {
+  padding-right: 5px !important;
+}
+.modern-invoice .summary-total {
+  width: 145px;
+  padding-left: 5px !important;
+}
+.modern-invoice .summary-box {
+  background: #f7f7f7;
+  border: 1px solid #e8e8e8;
+  border-radius: 17px;
+  padding: 7px 10px;
+  min-height: 42px;
+}
+.modern-invoice .summary-box strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.25;
+}
+.modern-invoice .invoice-total {
+  text-align: right;
+}
+.modern-invoice .invoice-total .amount {
+  font-size: 15px;
+  font-weight: 900;
+  margin-top: 4px;
+}
+.modern-invoice .tax-head {
+  background: #f7f7f7;
+  padding: 5px 10px;
+  font-size: 9.4px;
+  font-weight: 850;
+  text-transform: uppercase;
+  border-bottom: 1px solid #d8d8d8;
+}
+.modern-invoice .tax .data-table th,
+.modern-invoice .tax .data-table td {
+  font-size: 9.2px;
+  padding: 4px 4px;
+}
+.modern-invoice .tax-note {
+  padding: 5px 10px;
+  border-top: 1px solid #d8d8d8;
+  font-size: 9.8px;
+}
+.modern-invoice .bottom-table {
+  margin-bottom: 3px;
+}
+.modern-invoice .bottom-left {
+  width: 46%;
+  padding-right: 5px !important;
+}
+.modern-invoice .bottom-right {
+  width: 54%;
+  padding-left: 5px !important;
+}
+.modern-invoice .box {
+  background: #f7f7f7;
+  border: 1px solid #e8e8e8;
+  border-radius: 17px;
+  padding: 8px 10px;
+  min-height: 78px;
+}
+.modern-invoice .box-title {
+  font-size: 10px;
+  font-weight: 850;
+  margin-bottom: 6px;
+}
+.modern-invoice .bank-row {
+  font-size: 9.7px;
+  margin-bottom: 3px;
+}
+.modern-invoice .bank-row .bank-label {
+  display: inline-block;
+  width: 98px;
+}
+.modern-invoice .muted {
+  color: #666666;
+}
+.modern-invoice .sign {
+  text-align: right;
+  margin-top: 5px;
+  font-size: 9.5px;
+}
+.modern-invoice .sign-name {
+  font-weight: 850;
+  margin-bottom: 8px;
+}
+.modern-invoice .sign-line {
+  display: inline-block;
+  min-width: 130px;
+  border-top: 1px solid #aaaaaa;
+  padding-top: 5px;
+  text-align: center;
+}
+.modern-invoice .computer-note {
+  background: #f7f7f7;
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-align: center;
+  font-size: 9.2px;
+  color: #444;
+}
+</style>
+
+<main class="modern-invoice">
+  <table class="layout-table top-table">
+    <tr>
+      <td>
+        <h1 class="title">GST TAX INVOICE</h1>
+        <div class="title-sub">{{ CO.name }} - Mehsana</div>
+      </td>
+      <td class="copy-cell"><span class="copy">ORIGINAL FOR RECIPIENT</span></td>
+    </tr>
+  </table>
+
+  <table class="layout-table hero-table">
+    <tr>
+      <td class="hero-left">
+        <div class="card company-card">
+          <table class="layout-table company-table">
+            <tr>
+              <td class="logo-cell"><div class="logo"><img src="__MRF_LOGO__"></div></td>
+              <td>
+                <div class="company-name">{{ CO.name }}</div>
+                <div class="small">
+                  {% for a in CO.addr %}{{ a }}<br>{% endfor %}
+                  Mo : {{ CO.mobile }}<br>
+                  Telephone No : {{ CO.phone }}<br>
+                  {{ CO.dealer }}<br>
+                  <b>GSTIN/UIN : {{ CO.gstin }}</b><br>
+                  State Name : {{ CO.state }}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+      <td class="hero-right">
+        <div class="card invoice-card">
+          <table class="info-table">
+            <tr>
+              <td class="info-box">
+                <div class="mi-label">Invoice No.</div>
+                <div class="mi-value">{{ doc.name }}</div>
+              </td>
+              <td class="info-box">
+                <div class="mi-label">Dated</div>
+                <div class="mi-value">{{ frappe.utils.formatdate(doc.posting_date, "dd-MMM-yy") }}</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="info-box-full" colspan="2">
+                <div class="mi-label">Mode / Terms of Payment</div>
+                <div class="mi-value">{% if doc.payments %}{{ doc.payments[0].mode_of_payment }}{% else %}Cash{% endif %}</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="info-box">
+                <div class="mi-label">Reference No. & Date</div>
+                <div class="mi-value">-</div>
+              </td>
+              <td class="info-box">
+                <div class="mi-label">Other References</div>
+                <div class="mi-value">-</div>
+              </td>
+            </tr>
+            <tr>
+              <td class="info-box-full" colspan="2">
+                <div class="mi-label">Terms of Delivery</div>
+                <div class="mi-value">-</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="buyer-card">
+    <table class="layout-table buyer-table">
+      <tr>
+        <td class="buyer-tag-cell"><div class="buyer-tag">Buyer<br>Bill To</div></td>
+        <td>
+          <div class="buyer-name">{{ doc.customer_name or doc.customer }}</div>
+          <div class="small">
+            {{ doc.contact_mobile or doc.mobile_no or doc.contact_phone or "" }}<br>
+            State Name : {{ CO.state }}
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <section class="items">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 40px;" class="center">No.</th>
+          <th>Description of Goods</th>
+          <th style="width: 84px;" class="center">HSN/SAC</th>
+          <th style="width: 74px;" class="center">Qty</th>
+          <th style="width: 84px;" class="right">Rate</th>
+          <th style="width: 48px;" class="center">Per</th>
+          <th style="width: 94px;" class="right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in doc.items %}
+        <tr>
+          <td class="center">{{ loop.index }}</td>
+          <td>
+            <div class="item-name">{{ it.item_name or it.item_code }}</div>
+            {% if it.description and (it.description|striptags|trim) not in [it.item_name, it.item_code] %}
+              <div class="item-code">{{ it.description|striptags }}</div>
+            {% endif %}
+          </td>
+          <td class="center">{{ it.gst_hsn_code or "-" }}</td>
+          <td class="center bold">{{ "{:,.0f}".format(it.qty|float) }} {{ it.uom or "" }}</td>
+          <td class="right">{{ money(it.rate) }}</td>
+          <td class="center">{{ it.uom or "" }}</td>
+          <td class="right bold">{{ money(it.amount) }}</td>
+        </tr>
+        {% endfor %}
+        {% for i in range(blank_rows) %}
+        <tr>
+          <td class="center">{{ (doc.items|length) + loop.index }}</td>
+          <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td colspan="3" class="right">Total</td>
+          <td class="center">{{ "{:,.0f}".format(doc.total_qty|float) }} Nos</td>
+          <td></td>
+          <td></td>
+          <td class="right">Rs. {{ money(doc.grand_total) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <table class="layout-table summary-table">
+    <tr>
+      <td class="summary-main">
+        <div class="summary-box">
+          <div class="mi-label">Amount Chargeable in words</div>
+          <strong>{{ frappe.utils.money_in_words(doc.grand_total, doc.currency) }}</strong>
+        </div>
+      </td>
+      <td class="summary-total">
+        <div class="summary-box invoice-total">
+          <div class="mi-label">Invoice Total</div>
+          <div class="amount">Rs. {{ money(doc.grand_total) }}</div>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <section class="tax">
+    <div class="tax-head">Tax Summary</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>HSN/SAC</th>
+          <th>Taxable Value</th>
+          <th>CGST Rate</th>
+          <th>CGST Amt.</th>
+          <th>SGST Rate</th>
+          <th>SGST Amt.</th>
+          <th>Total Tax</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in order %}
+        <tr>
+          <td class="center">{{ h }}</td>
+          <td class="right">{{ money(hsn[h]["taxable"]) }}</td>
+          <td class="center">{{ hsn[h]["cr"]|round(0)|int }}%</td>
+          <td class="right">{{ money(hsn[h]["cgst"]) }}</td>
+          <td class="center">{{ hsn[h]["sr"]|round(0)|int }}%</td>
+          <td class="right">{{ money(hsn[h]["sgst"]) }}</td>
+          <td class="right">{{ money(hsn[h]["cgst"] + hsn[h]["sgst"] + hsn[h]["igst"]) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td class="center">Total</td>
+          <td class="right">{{ money(t_taxable) }}</td>
+          <td></td>
+          <td class="right">{{ money(t_cgst) }}</td>
+          <td></td>
+          <td class="right">{{ money(t_sgst) }}</td>
+          <td class="right">{{ money(t_tax) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tax-note">
+      Tax Amount in words : <b>{{ frappe.utils.money_in_words(t_tax, doc.currency) }}</b>
+    </div>
+  </section>
+
+  <table class="layout-table bottom-table">
+    <tr>
+      <td class="bottom-left">
+        <div class="box">
+          <div class="box-title">Declaration</div>
+          <div class="small">We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</div>
+        </div>
+      </td>
+      <td class="bottom-right">
+        <div class="box">
+          <div class="box-title">Company's Bank Details</div>
+          <div class="bank-row"><span class="bank-label muted">Bank Name</span><b>{{ CO.bank }}</b></div>
+          <div class="bank-row"><span class="bank-label muted">A/c No.</span><b>{{ CO.ac }}</b></div>
+          <div class="bank-row"><span class="bank-label muted">Branch & IFS Code</span><b>{{ CO.ifsc }}</b></div>
+          <div class="sign">
+            <div class="sign-name">for {{ CO.name }}</div>
+            <div class="sign-line">Authorised Signatory</div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="computer-note">This is a Computer Generated Invoice</div>
+</main>

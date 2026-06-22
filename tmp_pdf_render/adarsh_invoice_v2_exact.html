@@ -1,0 +1,445 @@
+﻿{%- set CO = {
+  "name": "Adarsh Motor Stores",
+  "addr": ["Opp, Rajkamal Petrol Pump,", "Highway Road, Mehsana 384002"],
+  "mobile": "9825883600 / 9427677670",
+  "phone": "02762 251800",
+  "dealer": "Authorised Dealer For : MRF TYRE & CEAT TYRE",
+  "gstin": "24AADFA2635A1ZA",
+  "state": "Gujarat, Code : 24",
+  "bank": "HDFC Bank",
+  "ac": "02388620000050",
+  "ifsc": "Mehsana & HDFC0000238"
+} -%}
+{%- macro money(v) -%}{{ "{:,.2f}".format(v|float) }}{%- endmacro -%}
+{%- set hsn = {} -%}
+{%- set order = [] -%}
+{%- for it in doc.items -%}
+  {%- set h = it.gst_hsn_code or "-" -%}
+  {%- if h not in hsn -%}
+    {%- set _ = order.append(h) -%}
+    {%- set _ = hsn.update({h: {"taxable":0.0,"cgst":0.0,"sgst":0.0,"igst":0.0,"cr":0.0,"sr":0.0,"ir":0.0}}) -%}
+  {%- endif -%}
+  {%- set _ = hsn[h].update({"taxable": hsn[h]["taxable"] + (it.net_amount|float)}) -%}
+{%- endfor -%}
+{%- for tax in doc.taxes -%}
+  {%- set acc = (tax.account_head or "")|lower -%}
+  {%- set det = json.loads(tax.item_wise_tax_detail or "{}") -%}
+  {%- for it in doc.items -%}
+    {%- set h = it.gst_hsn_code or "-" -%}
+    {%- if it.item_code in det -%}
+      {%- set ra = det[it.item_code] -%}
+      {%- if "cgst" in acc -%}{%- set _ = hsn[h].update({"cgst": hsn[h]["cgst"] + (ra[1]|float), "cr": ra[0]}) -%}
+      {%- elif "sgst" in acc -%}{%- set _ = hsn[h].update({"sgst": hsn[h]["sgst"] + (ra[1]|float), "sr": ra[0]}) -%}
+      {%- elif "igst" in acc -%}{%- set _ = hsn[h].update({"igst": hsn[h]["igst"] + (ra[1]|float), "ir": ra[0]}) -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endfor -%}
+{%- set t_taxable = doc.net_total|float -%}
+{%- set t_cgst = (hsn.values()|map(attribute="cgst")|sum) -%}
+{%- set t_sgst = (hsn.values()|map(attribute="sgst")|sum) -%}
+{%- set t_igst = (hsn.values()|map(attribute="igst")|sum) -%}
+{%- set t_tax = t_cgst + t_sgst + t_igst -%}
+{%- set is_inter = t_igst > 0 -%}
+{%- set min_rows = 5 -%}
+{%- set blank_rows = min_rows - (doc.items|length) if (doc.items|length) < min_rows else 0 -%}
+
+<style>
+@page { size:A4; margin: 8mm; }
+.print-format {
+  margin-top:3mm;
+  margin-bottom:3mm;
+  margin-left:5mm;
+  margin-right:5mm;
+}
+body { margin:0; background:#fff; }
+.exact-invoice {
+  width:100%;
+  color:#111;
+  font-family:"Arial Narrow", Arial, Helvetica, sans-serif;
+  font-size:10.6px;
+  line-height:1.18;
+  letter-spacing:0;
+}
+.top-title {
+  position:relative;
+  text-align:center;
+  margin:0 0 6px;
+  font-size:27px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:1.8px;
+}
+.top-title:before,
+.top-title:after {
+  content:"";
+  display:inline-block;
+  width:62px;
+  height:1px;
+  background:#9b9b9b;
+  vertical-align:middle;
+  margin:0 24px 8px;
+}
+.copy-label {
+  position:absolute;
+  right:0;
+  top:-3px;
+  font-size:10px;
+  line-height:1;
+  font-style:italic;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+.header-layout {
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+  margin-bottom:6px;
+}
+.header-gap { width:8px; }
+.card {
+  border:1px solid #8d8d8d;
+  border-radius:8px;
+  overflow:hidden;
+  background:#fff;
+}
+.header-card { height:108px; }
+.seller { width:48%; padding:9px 12px 8px 15px; box-sizing:border-box; vertical-align:middle; }
+.seller-inner { width:100%; border-collapse:collapse; table-layout:fixed; }
+.seller-logo { width:88px; padding-right:15px; text-align:center; flex:0 0 88px; }
+.seller-logo img.mrf-mark { max-width:75px; max-height:74px; display:block; margin:0 auto 5px; filter:grayscale(100%); }
+.seller-logo img.mrf-word { max-width:74px; max-height:30px; display:block; margin:0 auto; filter:grayscale(100%); }
+.seller-name { font-size:18px; font-weight:900; line-height:1.05; margin-bottom:4px; }
+.seller-line { font-size:10.8px; margin:1px 0; }
+.seller-small { margin-top:5px; font-size:9px; white-space:nowrap; }
+.details { padding:6px 10px 7px; box-sizing:border-box; vertical-align:top; }
+.section-pill {
+  display:inline-block;
+  min-width:98px;
+  padding:3px 8px 3px 8px;
+  margin:-1px 0 3px -1px;
+  background:#ededed;
+  border-radius:0 0 5px 0;
+  font-weight:900;
+  text-transform:uppercase;
+}
+.detail-grid { width:100%; border-collapse:collapse; table-layout:fixed; }
+.detail-grid td {
+  border-top:1px solid #c7c7c7;
+  padding:6px 2px;
+  vertical-align:middle;
+  height:17px;
+}
+.detail-grid .detail-label { white-space:nowrap; font-size:8.2px; font-weight:400; background:transparent !important; border:0 !important; box-shadow:none !important; color:#111 !important; display:table-cell !important; padding:6px 2px !important; }
+.detail-grid .colon { width:9px; text-align:center; }
+.detail-grid .detail-value { font-weight:800; white-space:nowrap; font-size:9.3px; background:transparent !important; border-left:0 !important; }
+.detail-grid .split { border-left:1px solid #d6d6d6 !important; padding-left:6px !important; }
+.buyer { min-height:68px; padding:0 11px 8px; box-sizing:border-box; margin-bottom:7px; }
+.buyer .section-pill { margin-left:-11px; min-width:126px; }
+.buyer-name { font-weight:900; font-size:14px; margin:4px 0 1px; }
+table { border-spacing:0; }
+.items {
+  width:100%;
+  border-collapse:separate;
+  table-layout:fixed;
+  margin-bottom:7px;
+}
+.items th,
+.items td {
+  border-right:1px solid #c7c7c7;
+  border-bottom:1px solid #d9d9d9;
+  padding:6px 7px;
+  vertical-align:top;
+}
+.items th {
+  height:23px;
+  background:#f7f7f7;
+  text-align:center;
+  font-weight:500;
+}
+.items th:last-child,
+.items td:last-child { border-right:0; }
+.items thead th { border-bottom:1px solid #a8a8a8; }
+.items tbody tr.data-row td { height:27px; }
+.items tbody tr.blank td { height:18px; color:#111; }
+.items .sl { width:5.5%; text-align:center; }
+.items .desc { width:40%; }
+.items .hsn { width:10.5%; text-align:center; }
+.items .qty { width:12%; text-align:center; font-weight:800; }
+.items .rate { width:12%; text-align:right; }
+.items .per { width:7%; text-align:center; }
+.items .amount { width:13%; text-align:right; font-weight:900; }
+.item-title { font-weight:900; font-size:11.3px; line-height:1.08; }
+.item-sub { margin-top:2px; font-style:italic; font-size:10.2px; color:#333; }
+.total-row td {
+  height:23px;
+  border-bottom:0;
+  font-weight:900;
+  vertical-align:middle;
+}
+.total-label { text-align:right; }
+.amount-words {
+  display:grid;
+  grid-template-columns:1fr 132px;
+  margin-bottom:8px;
+}
+.amount-words .left,
+.amount-words .right { padding:6px 12px; min-height:22px; }
+.amount-words .right {
+  border-left:1px solid #c7c7c7;
+  text-align:center;
+  padding-top:13px;
+}
+.words { display:block; margin-top:4px; font-weight:900; font-size:11.1px; }
+.tax-card { margin-bottom:8px; }
+.tax-card .section-pill { margin-left:0; min-width:88px; }
+.tax-table {
+  width:100%;
+  border-collapse:collapse;
+  table-layout:fixed;
+  text-align:center;
+}
+.tax-table th,
+.tax-table td {
+  border-top:1px solid #b8b8b8;
+  border-right:1px solid #c7c7c7;
+  padding:4px 6px;
+}
+.tax-table th:last-child,
+.tax-table td:last-child { border-right:0; }
+.tax-table th { font-weight:800; background:#fafafa; }
+.tax-table .total td { font-weight:900; }
+.tax-words { border-top:1px solid #c7c7c7; padding:6px 12px; }
+.bottom-layout {
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+  margin-bottom:9px;
+}
+.bottom-gap { width:8px; }
+.declaration,
+.bank { min-height:92px; padding:0 12px 8px; box-sizing:border-box; }
+.declaration { width:41.5%; vertical-align:top; }
+.bank { vertical-align:top; }
+.declaration .section-pill,
+.bank .section-pill { margin-left:-12px; min-width:88px; }
+.declaration p { margin:9px 0 0; font-size:10.3px; }
+.bank-layout { width:100%; border-collapse:collapse; table-layout:fixed; }
+.bank-lines { padding-top:6px; }
+.bank-line { display:grid; grid-template-columns:112px 9px 1fr; margin:4px 0; }
+.for-line { text-align:center; font-weight:900; margin-top:6px; }
+.signature-box {
+  border-left:1px dashed #b8b8b8;
+  text-align:center;
+  padding-left:12px;
+  min-height:76px;
+  width:130px;
+  vertical-align:top;
+}
+.signature-box img {
+  max-width:76px;
+  max-height:48px;
+  filter:grayscale(100%);
+  margin:4px auto 6px;
+  display:block;
+}
+.sig-line { border-top:1px solid #777; margin:0 auto 8px; width:105px; height:1px; }
+.footer-note {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#111;
+  font-size:10.2px;
+  margin-top:-6px;
+}
+.footer-note:before,
+.footer-note:after {
+  content:"";
+  flex:1;
+  border-top:1px dashed #9b9b9b;
+}
+</style>
+
+<div class="exact-invoice">
+  <div class="top-title">GST TAX INVOICE <span class="copy-label">ORIGINAL FOR RECIPIENT</span></div>
+
+  <table class="header-layout">
+    <tr>
+      <td class="card header-card seller">
+        <table class="seller-inner">
+          <tr>
+            <td class="seller-logo">
+              <img class="mrf-mark" src="__ADARSH_STAMP__">
+              <img class="mrf-word" src="__MRF_LOGO__">
+            </td>
+            <td>
+              <div class="seller-name">{{ CO.name }}</div>
+              {% for a in CO.addr %}<div class="seller-line">{{ a }}</div>{% endfor %}
+              <div class="seller-line">Mo : {{ CO.mobile }}</div>
+              <div class="seller-line">Telephone No : {{ CO.phone }}</div>
+              <div class="seller-small">{{ CO.dealer }}</div>
+              <div class="seller-line">GSTIN/UIN : <b>{{ CO.gstin }}</b></div>
+              <div class="seller-line">State Name : {{ CO.state }}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+      <td class="header-gap"></td>
+      <td class="card header-card details">
+      <div class="section-pill">Invoice Details</div>
+      <table class="detail-grid">
+        <colgroup>
+          <col style="width:24%;">
+          <col style="width:12px;">
+          <col style="width:31%;">
+          <col style="width:11%;">
+          <col style="width:10px;">
+          <col style="width:24%;">
+        </colgroup>
+        <tr>
+          <td class="detail-label">Invoice No.</td><td class="colon">:</td><td class="detail-value">{{ doc.name }}</td>
+          <td class="split detail-label">Dated</td><td class="colon">:</td><td class="detail-value">{{ frappe.utils.formatdate(doc.posting_date, "dd-MMM-yy") }}</td>
+        </tr>
+        <tr>
+          <td class="detail-label">Mode/Terms of Payment</td><td class="colon">:</td><td class="detail-value" colspan="4">{% if doc.payments %}{{ doc.payments[0].mode_of_payment }}{% else %}Cash{% endif %}</td>
+        </tr>
+        <tr>
+          <td class="detail-label">Reference No. & Date</td><td class="colon">:</td><td></td>
+          <td class="split detail-label">Other References</td><td class="colon">:</td><td></td>
+        </tr>
+        <tr>
+          <td class="detail-label">Terms of Delivery</td><td class="colon">:</td><td colspan="4"></td>
+        </tr>
+      </table>
+      </td>
+    </tr>
+  </table>
+
+  <div class="card buyer">
+    <div class="section-pill">Buyer (Bill To)</div>
+    <div class="buyer-name">{{ doc.customer_name or doc.customer }}</div>
+    <div>{{ doc.contact_mobile or doc.mobile_no or doc.contact_phone or "" }}</div>
+    <div style="margin-top:5px;">State Name&nbsp;&nbsp;&nbsp;:&nbsp;&nbsp;{{ CO.state }}</div>
+  </div>
+
+  <table class="card items">
+    <thead>
+      <tr>
+        <th class="sl">Sl.<br>No.</th>
+        <th class="desc">Description of Goods</th>
+        <th class="hsn">HSN/SAC</th>
+        <th class="qty">Quantity</th>
+        <th class="rate">Rate<br>(&#8377;)</th>
+        <th class="per">per</th>
+        <th class="amount">Amount<br>(&#8377;)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in doc.items %}
+      <tr class="data-row">
+        <td class="sl">{{ loop.index }}</td>
+        <td class="desc">
+          <div class="item-title">{{ it.item_name or it.item_code }}</div>
+          {% if it.description and (it.description|striptags|trim) not in [it.item_name, it.item_code] %}
+            <div class="item-sub">{{ it.description|striptags }}</div>
+          {% endif %}
+        </td>
+        <td class="hsn">{{ it.gst_hsn_code or "-" }}</td>
+        <td class="qty">{{ "{:,.0f}".format(it.qty|float) }} {{ it.uom or "" }}</td>
+        <td class="rate">{{ money(it.rate) }}</td>
+        <td class="per">{{ it.uom or "" }}</td>
+        <td class="amount">{{ money(it.amount) }}</td>
+      </tr>
+      {% endfor %}
+      {% for i in range(blank_rows) %}
+      <tr class="blank">
+        <td class="sl">{{ (doc.items|length) + loop.index }}</td>
+        <td></td><td></td><td></td><td></td><td></td><td></td>
+      </tr>
+      {% endfor %}
+      <tr class="total-row">
+        <td colspan="3" class="total-label">Total</td>
+        <td class="qty">{{ "{:,.0f}".format(doc.total_qty|float) }} Nos</td>
+        <td colspan="2"></td>
+        <td class="amount">&#8377; {{ money(doc.grand_total) }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card amount-words">
+    <div class="left">Amount Chargeable (in words)<span class="words">{{ frappe.utils.money_in_words(doc.grand_total, doc.currency) }}</span></div>
+    <div class="right">E. & O.E</div>
+  </div>
+
+  <div class="card tax-card">
+    <div class="section-pill">Tax Summary</div>
+    <table class="tax-table">
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:14%;">HSN/SAC</th>
+          <th rowspan="2" style="width:15%;">Taxable<br>Value<br>(&#8377;)</th>
+          <th colspan="2">CGST</th>
+          <th colspan="2">SGST/UTGST</th>
+          <th rowspan="2" style="width:17%;">Total<br>Tax Amount<br>(&#8377;)</th>
+        </tr>
+        <tr>
+          <th>Rate</th><th>Amount (&#8377;)</th>
+          <th>Rate</th><th>Amount (&#8377;)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in order %}
+        <tr>
+          <td>{{ h }}</td>
+          <td>{{ money(hsn[h]["taxable"]) }}</td>
+          <td>{{ hsn[h]["cr"]|round(0)|int }}%</td>
+          <td>{{ money(hsn[h]["cgst"]) }}</td>
+          <td>{{ hsn[h]["sr"]|round(0)|int }}%</td>
+          <td>{{ money(hsn[h]["sgst"]) }}</td>
+          <td>{{ money(hsn[h]["cgst"] + hsn[h]["sgst"] + hsn[h]["igst"]) }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total">
+          <td>Total</td>
+          <td>{{ money(t_taxable) }}</td>
+          <td></td><td>{{ money(t_cgst) }}</td>
+          <td></td><td>{{ money(t_sgst) }}</td>
+          <td>{{ money(t_tax) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tax-words">Tax Amount (in words) : <b>{{ frappe.utils.money_in_words(t_tax, doc.currency) }}</b></div>
+  </div>
+
+  <table class="bottom-layout">
+    <tr>
+      <td class="card declaration">
+      <div class="section-pill">Declaration</div>
+      <p>We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p>
+      </td>
+      <td class="bottom-gap"></td>
+      <td class="card bank">
+      <div class="section-pill">Company's Bank Details</div>
+      <table class="bank-layout">
+        <tr>
+        <td class="bank-lines">
+          <div class="bank-line"><span>Bank Name</span><span>:</span><b>{{ CO.bank }}</b></div>
+          <div class="bank-line"><span>A/c No.</span><span>:</span><b>{{ CO.ac }}</b></div>
+          <div class="bank-line"><span>Branch & IFS Code</span><span>:</span><b>{{ CO.ifsc }}</b></div>
+          <div class="for-line">for {{ CO.name }}</div>
+        </td>
+        <td class="signature-box">
+          <img src="__ADARSH_STAMP__">
+          <div class="sig-line"></div>
+          <div>Authorised Signatory</div>
+        </td>
+        </tr>
+      </table>
+      </td>
+    </tr>
+  </table>
+
+  <div class="footer-note"><span>This is a Computer Generated Invoice</span></div>
+</div>
