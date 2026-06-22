@@ -49,11 +49,13 @@ onMounted(() => {
 	}
 	// Load recent customers on mount
 	store.loadRecentCustomers(sessionStore.posProfile);
+	store.loadTopCustomers(sessionStore.posProfile);
 });
 
 watch(searchInput, (term) => {
 	clearTimeout(debounceTimer);
 	debounceTimer = setTimeout(() => {
+		if (term && term.trim().length >= 2) store.addRecentSearch(term);
 		store.searchCustomers(term, sessionStore.posProfile);
 	}, 300);
 });
@@ -145,18 +147,41 @@ function formatDate(dateStr: string) {
 							<Loader2 :size="24" class="animate-spin text-gray-400" />
 						</div>
 
-						<!-- No search: show recent customers -->
+						<!-- No search: show recent searches and top customers -->
 						<div v-else-if="!searchInput">
-							<div v-if="store.recentCustomers.length > 0">
+							<!-- Recent Searches -->
+							<div v-if="store.recentSearches.length > 0" class="mb-5">
+								<div class="flex items-center justify-between mb-2">
+									<div class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+										<Clock :size="12" />
+										Recent Searches
+									</div>
+									<button @click="store.clearRecentSearches()" class="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-wider font-semibold">Clear</button>
+								</div>
+								<div class="flex flex-wrap gap-2">
+									<button
+										v-for="term in store.recentSearches"
+										:key="term"
+										@click="searchInput = term"
+										class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5"
+									>
+										{{ term }}
+										<X :size="10" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" @click.stop="store.removeRecentSearch(term)" />
+									</button>
+								</div>
+							</div>
+
+							<!-- Top Customers -->
+							<div v-if="store.topCustomers.length > 0">
 								<div
 									class="flex items-center gap-1.5 mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide"
 								>
-									<Clock :size="12" />
-									Recent Customers
+									<User :size="12" />
+									Top Customers
 								</div>
 								<div class="space-y-2">
 									<button
-										v-for="c in store.recentCustomers"
+										v-for="c in store.topCustomers"
 										:key="c.name"
 										@click="selectCustomer(c.name)"
 										class="w-full text-left p-3 rounded-lg border transition-all duration-150"
@@ -192,13 +217,6 @@ function formatDate(dateStr: string) {
 											>
 												<Mail :size="10" />
 												{{ c.email_id }}
-											</span>
-											<span
-												v-if="c.last_invoice_date"
-												class="flex items-center gap-1 ml-auto"
-											>
-												<Clock :size="10" />
-												{{ formatDate(c.last_invoice_date) }}
 											</span>
 										</div>
 									</button>

@@ -4,6 +4,7 @@
 import re
 import frappe
 from frappe import _
+from frappe.utils import flt
 from pos_prime.api._utils import validate_pos_access
 
 
@@ -114,6 +115,37 @@ def get_recent_customers(pos_profile="", limit=20):
         as_dict=True,
     )
 
+@frappe.whitelist()
+def get_top_customers(pos_profile="", limit=100):
+    """Return top customers ordered by creation date."""
+    validate_pos_access(pos_profile or None)
+    params = {"limit": int(limit)}
+    group_filter = ""
+
+    if pos_profile:
+        profile_groups = frappe.get_all(
+            "POS Customer Group",
+            filters={"parent": pos_profile, "parenttype": "POS Profile"},
+            pluck="customer_group",
+        )
+        if profile_groups:
+            group_filter = "AND customer_group IN %(groups)s"
+            params["groups"] = profile_groups
+
+    return frappe.db.sql(
+        f"""
+        SELECT name, customer_name, mobile_no, email_id
+        FROM `tabCustomer`
+        WHERE disabled = 0
+        {group_filter}
+        ORDER BY creation DESC
+        LIMIT %(limit)s
+    """,
+        params,
+        as_dict=True,
+    )
+
+
 
 @frappe.whitelist()
 def get_customer(customer_name):
@@ -184,6 +216,95 @@ def get_customer_cars(customer):
             "notes": detail.get("notes") or "",
         })
     return cars
+
+
+@frappe.whitelist()
+def create_customer_car(customer, registration_number, make_model="", current_odometer=0,
+                        monthly_driven=0, notes=""):
+    """Create a Customer Car and link it to the selected Customer."""
+    validate_pos_access()
+    if not customer or not frappe.db.exists("Customer", customer):
+        frappe.throw(_("Customer does not exist"))
+    if not registration_number or not str(registration_number).strip():
+        frappe.throw(_("Registration number is required"))
+    if not frappe.db.exists("DocType", "Customer Car") or not frappe.db.exists(
+        "DocType", "Customer Car Link"
+    ):
+        frappe.throw(_("Customer car records are not configured on this site"))
+
+    customer_meta = frappe.get_meta("Customer")
+    if not customer_meta.has_field("custom_cars"):
+        frappe.throw(_("Customer car links are not configured on this site"))
+
+    car = frappe.new_doc("Customer Car")
+    values = {
+        "registration_number": str(registration_number).strip(),
+        "make_model": str(make_model or "").strip(),
+        "current_odometer": flt(current_odometer),
+        "monthly_driven": flt(monthly_driven),
+        "notes": str(notes or "").strip(),
+    }
+    car_meta = frappe.get_meta("Customer Car")
+    for fieldname, value in values.items():
+        if car_meta.has_field(fieldname):
+            car.set(fieldname, value)
+    car.insert(ignore_permissions=True)
+
+    customer_doc = frappe.get_doc("Customer", customer)
+    customer_doc.append(
+        "custom_cars",
+        {"car": car.name, "make_model": values["make_model"]},
+    )
+    customer_doc.save(ignore_permissions=True)
+    return {
+        "name": car.name,
+        **values,
+    }
+
+
+@frappe.whitelist()
+def update_customer_car(customer, car, registration_number, make_model="", current_odometer=0,
+                        monthly_driven=0, notes=""):
+    """Update a car only when it is linked to the selected customer."""
+    validate_pos_access()
+    if not customer or not frappe.db.exists("Customer", customer):
+        frappe.throw(_("Customer does not exist"))
+    if not car or not frappe.db.exists("Customer Car", car):
+        frappe.throw(_("Car does not exist"))
+    if not registration_number or not str(registration_number).strip():
+        frappe.throw(_("Registration number is required"))
+
+    car_link = frappe.db.exists(
+        "Customer Car Link",
+        {
+            "parent": customer,
+            "parenttype": "Customer",
+            "parentfield": "custom_cars",
+            "car": car,
+        },
+    )
+    if not car_link:
+        frappe.throw(
+            _("This car is not linked to the selected customer"),
+            frappe.PermissionError,
+        )
+
+    values = {
+        "registration_number": str(registration_number).strip(),
+        "make_model": str(make_model or "").strip(),
+        "current_odometer": flt(current_odometer),
+        "monthly_driven": flt(monthly_driven),
+        "notes": str(notes or "").strip(),
+    }
+    car_doc = frappe.get_doc("Customer Car", car)
+    car_meta = frappe.get_meta("Customer Car")
+    for fieldname, value in values.items():
+        if car_meta.has_field(fieldname):
+            car_doc.set(fieldname, value)
+    car_doc.save(ignore_permissions=True)
+
+    frappe.db.set_value("Customer Car Link", car_link, "make_model", values["make_model"])
+    return {"name": car_doc.name, **values}
 
 
 @frappe.whitelist()

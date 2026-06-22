@@ -138,6 +138,15 @@ async function sendInitToDisplay() {
 	});
 }
 
+// Restore this shift's saved cart. The requiresShift guard guarantees an
+// openingEntry by the time POS mounts; the watch covers a shift opened or
+// changed while this view is alive.
+cartStore.hydrate(sessionStore.openingEntry);
+watch(
+	() => sessionStore.openingEntry,
+	(id) => cartStore.hydrate(id),
+);
+
 onMounted(async () => {
 	// Listen for messages from display immediately — must be before any awaits
 	// so the handler is registered even if initialization partially fails

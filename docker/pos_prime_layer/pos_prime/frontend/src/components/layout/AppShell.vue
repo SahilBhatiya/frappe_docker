@@ -11,6 +11,7 @@ import { call, Tooltip } from "frappe-ui";
 import {
   ClipboardList,
   Grid3x3,
+  History,
   LogOut,
   Maximize,
   Menu,
@@ -41,6 +42,7 @@ const navItems = [
 	{ name: __("POS"), routeName: "POS", icon: Grid3x3 },
 	{ name: __("Orders"), routeName: "Orders", icon: ClipboardList },
 	{ name: __("Customers"), routeName: "Customers", icon: Users },
+	{ name: __("Alignment"), routeName: "AlignmentHistory", icon: History },
 ];
 
 const currentRouteName = computed(() => {

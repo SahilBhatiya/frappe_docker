@@ -25,6 +25,3 @@ posify/public/frontend/
 *.swo
 *~
 .DS_Store
-
-
-pos_prime

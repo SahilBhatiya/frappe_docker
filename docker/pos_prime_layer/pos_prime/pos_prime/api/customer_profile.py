@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.utils import flt
+from pos_prime.api._utils import validate_pos_access
 
 
 @frappe.whitelist()
@@ -118,6 +119,120 @@ def get_customer_pos_invoices(customer, company="", limit=10):
         limit_page_length=limit,
     )
     return invoices
+
+
+@frappe.whitelist()
+def get_customer_history(customer, company=""):
+    """Return the complete invoice, payment, and transaction history for a customer."""
+    validate_pos_access()
+    if not customer or not frappe.db.exists("Customer", customer):
+        return {"invoices": [], "payments": [], "transactions": []}
+
+    invoice_filters = {"customer": customer, "docstatus": 1}
+    payment_filters = {
+        "party_type": "Customer",
+        "party": customer,
+        "docstatus": 1,
+    }
+    if company:
+        invoice_filters["company"] = company
+        payment_filters["company"] = company
+
+    invoices = []
+    for doctype in ("POS Invoice", "Sales Invoice"):
+        if not frappe.db.exists("DocType", doctype):
+            continue
+        rows = frappe.get_all(
+            doctype,
+            filters=invoice_filters,
+            fields=[
+                "name", "posting_date", "grand_total", "outstanding_amount",
+                "status", "is_return", "currency", "total_qty",
+            ],
+            order_by="posting_date desc, creation desc",
+            limit_page_length=0,
+        )
+        for row in rows:
+            row["doctype"] = doctype
+        invoices.extend(rows)
+
+    payments = frappe.get_all(
+        "Payment Entry",
+        filters=payment_filters,
+        fields=[
+            "name", "posting_date", "payment_type", "mode_of_payment",
+            "paid_amount", "received_amount", "unallocated_amount",
+            "reference_no", "status", "company",
+        ],
+        order_by="posting_date desc, creation desc",
+        limit_page_length=0,
+    )
+
+    pos_payment_params = {"customer": customer}
+    pos_company_filter = ""
+    if company:
+        pos_payment_params["company"] = company
+        pos_company_filter = "AND invoice.company = %(company)s"
+    pos_payments = frappe.db.sql(
+        f"""
+        SELECT
+            invoice.name,
+            invoice.posting_date,
+            'POS Payment' AS payment_type,
+            payment.mode_of_payment,
+            payment.amount AS paid_amount,
+            payment.amount AS received_amount,
+            0 AS unallocated_amount,
+            invoice.name AS reference_no,
+            invoice.status,
+            invoice.company,
+            'POS Invoice' AS source_doctype
+        FROM `tabSales Invoice Payment` payment
+        INNER JOIN `tabPOS Invoice` invoice ON invoice.name = payment.parent
+        WHERE payment.parenttype = 'POS Invoice'
+          AND invoice.customer = %(customer)s
+          AND invoice.docstatus = 1
+          AND payment.amount != 0
+          {pos_company_filter}
+        ORDER BY invoice.posting_date DESC, invoice.creation DESC, payment.idx ASC
+        """,
+        pos_payment_params,
+        as_dict=True,
+    )
+    for payment in payments:
+        payment["source_doctype"] = "Payment Entry"
+    payments.extend(pos_payments)
+    payments.sort(
+        key=lambda row: (str(row.get("posting_date") or ""), row.get("name") or ""),
+        reverse=True,
+    )
+
+    transactions = [
+        {
+            **invoice,
+            "type": "invoice",
+            "amount": invoice.get("grand_total") or 0,
+        }
+        for invoice in invoices
+    ] + [
+        {
+            **payment,
+            "type": "payment",
+            "amount": payment.get("received_amount") or payment.get("paid_amount") or 0,
+            "currency": frappe.get_cached_value("Company", payment.get("company"), "default_currency"),
+        }
+        for payment in payments
+    ]
+    transactions.sort(
+        key=lambda row: (str(row.get("posting_date") or ""), row.get("name") or ""),
+        reverse=True,
+    )
+
+    invoices.sort(
+        key=lambda row: (str(row.get("posting_date") or ""), row.get("name") or ""),
+        reverse=True,
+    )
+    return {"invoices": invoices, "payments": payments, "transactions": transactions}
 
 
 @frappe.whitelist()

@@ -2,23 +2,12 @@
 <!-- Licensed under GPLv3. See license.txt -->
 
 <script setup lang="ts">
+import NewCustomerDialog from "@/components/customer/NewCustomerDialog.vue";
 import Input from "@/components/ui/input/Input.vue";
 import { useCurrency } from "@/composables/useCurrency";
 import { useCustomerStore } from "@/stores/customer";
 import { usePosSessionStore } from "@/stores/posSession";
-import NewCustomerDialog from "@/components/customer/NewCustomerDialog.vue";
-import {
-  AlertTriangle,
-  ChevronDown,
-  ChevronRight,
-  Loader2,
-  Phone,
-  Plus,
-  Search,
-  Tag,
-  User,
-  X,
-} from "lucide-vue-next";
+import { AlertTriangle, ChevronRight, Phone, Plus, Search, Tag, User, X } from "lucide-vue-next";
 import { onUnmounted, ref, watch } from "vue";
 
 const { formatCurrency } = useCurrency();
@@ -86,7 +75,10 @@ function onCustomerCreated() {
 <template>
 	<div class="relative">
 		<!-- Selected customer display (ERPNext-style: circular avatar + name/desc) -->
-		<div v-if="customerStore.customer" class="flex items-center gap-3">
+		<div
+			v-if="customerStore.customer"
+			class="flex items-center gap-3 bg-gray-50 rounded-2xl p-2 border border-gray-100"
+		>
 			<button
 				@click="emit('openDetail')"
 				class="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer"

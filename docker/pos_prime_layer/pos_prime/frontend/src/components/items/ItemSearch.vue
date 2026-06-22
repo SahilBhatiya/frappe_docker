@@ -21,14 +21,14 @@ const emit = defineEmits<{
 const localValue = ref(props.modelValue)
 const isFocused = ref(false)
 const inputRef = ref<InstanceType<typeof Input> | null>(null)
-let inputFrame: number | null = null
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => {
   inputRef.value?.focus()
 })
 
 onUnmounted(() => {
-  if (inputFrame !== null) cancelAnimationFrame(inputFrame)
+  if (searchTimeout !== null) clearTimeout(searchTimeout)
 })
 
 watch(
@@ -38,14 +38,13 @@ watch(
   }
 )
 
-function onInput(e: Event) {
-  const value = (e.target as HTMLInputElement).value
+function onInput(val: string | number) {
+  const value = String(val)
   localValue.value = value
-  if (inputFrame !== null) cancelAnimationFrame(inputFrame)
-  inputFrame = requestAnimationFrame(() => {
+  if (searchTimeout !== null) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
     emit('update:modelValue', value)
-    inputFrame = null
-  })
+  }, 300)
 }
 
 function clear() {
@@ -68,8 +67,8 @@ function clear() {
     />
     <Input
       ref="inputRef"
-      :value="localValue"
-      @input="onInput"
+      :model-value="localValue"
+      @update:model-value="onInput"
       @focus="isFocused = true"
       @blur="isFocused = false"
       type="text"

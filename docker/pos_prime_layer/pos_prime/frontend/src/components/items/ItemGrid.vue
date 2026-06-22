@@ -77,7 +77,7 @@ function updateColumnCount() {
 
 // Group filtered items into rows for virtual scrolling
 const rows = computed(() => {
-  const items = itemsStore.filteredItems
+  const items = [...itemsStore.filteredItems].sort((a, b) => (b.actual_qty || 0) - (a.actual_qty || 0))
   if (viewMode.value === 'table') return items.map(item => [item])
   const cols = columnCount.value
   const result: Item[][] = []
@@ -92,7 +92,7 @@ const virtualizer = useVirtualizer(
     count: rows.value.length,
     getScrollElement: () => scrollContainer.value,
     estimateSize: () => viewMode.value === 'table'
-      ? 64
+      ? 68
       : settingsStore.hideImages ? 70 : (isDeskMode.value ? 185 : 200),
     overscan: 5,
   }))
@@ -319,82 +319,87 @@ const headerLabel = computed(() => {
         @select="onGroupSelect"
       />
 
-      <div
-        ref="scrollContainer"
-        class="flex-1 overflow-y-auto"
-        style="container-type: inline-size; container-name: item-results;"
-      >
+      <div class="flex-1 flex flex-col relative overflow-hidden">
         <div
-          v-if="itemsStore.loading && itemsStore.allItems.length === 0"
-          class="flex items-center justify-center py-12"
-        >
-          <div class="text-gray-400 dark:text-gray-500 text-sm">{{ __('Loading items...') }}</div>
-        </div>
-
-        <div
-          v-else-if="itemsStore.filteredItems.length === 0"
-          class="flex flex-col items-center justify-center py-12"
-        >
-          <Package class="text-gray-300 dark:text-gray-600 mb-3" :size="48" />
-          <p class="text-gray-500 dark:text-gray-400 text-sm">{{ __('No items found') }}</p>
-        </div>
-
-        <div
-          v-if="viewMode === 'table' && itemsStore.filteredItems.length > 0"
-          role="row"
-          class="item-table-header sticky top-0 z-10 mx-2 grid gap-3 border-b border-gray-100 bg-white/95 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400 backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/95"
-        >
-          <span role="columnheader">{{ __('Item') }}</span>
-          <span role="columnheader" class="item-table-header-group">{{ __('Group') }}</span>
-          <span role="columnheader" class="item-table-header-stock">{{ __('Stock') }}</span>
-          <span role="columnheader" class="text-right">{{ __('Price') }}</span>
-          <span aria-hidden="true"></span>
-        </div>
-
-        <!-- Both layouts stay virtualized so large catalogs and live search remain fluid. -->
-        <div
-          v-if="itemsStore.filteredItems.length > 0"
-          :role="viewMode === 'table' ? 'rowgroup' : undefined"
-          :style="{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }"
+          ref="scrollContainer"
+          class="flex-1 overflow-y-auto"
+          style="container-type: inline-size; container-name: item-results;"
         >
           <div
-            v-for="virtualRow in virtualizer.getVirtualItems()"
-            :key="virtualRow.index"
-            :ref="(el) => { if (el) virtualizer.measureElement(el as Element) }"
-            :data-index="virtualRow.index"
-            :style="{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              transform: `translateY(${virtualRow.start}px)`,
-              paddingLeft: 'var(--padding-sm, 8px)',
-              paddingRight: 'var(--padding-sm, 8px)',
-            }"
+            v-if="itemsStore.loading && itemsStore.allItems.length === 0"
+            class="flex items-center justify-center py-12"
+          >
+            <div class="text-gray-400 dark:text-gray-500 text-sm">{{ __('Loading items...') }}</div>
+          </div>
+
+          <div
+            v-else-if="itemsStore.filteredItems.length === 0"
+            class="flex flex-col items-center justify-center py-12"
+          >
+            <Package class="text-gray-300 dark:text-gray-600 mb-3" :size="48" />
+            <p class="text-gray-500 dark:text-gray-400 text-sm">{{ __('No items found') }}</p>
+          </div>
+
+          <div
+            v-if="viewMode === 'table' && itemsStore.filteredItems.length > 0"
+            role="row"
+            class="item-table-header sticky top-0 z-10 mx-2 grid gap-3 bg-white/95 px-3.5 py-3 text-xs font-medium text-gray-500 backdrop-blur-md dark:bg-gray-950/95 dark:text-gray-400"
+          >
+            <span role="columnheader">{{ __('Item') }}</span>
+            <span role="columnheader" class="item-table-header-group">{{ __('Group') }}</span>
+            <span role="columnheader" class="item-table-header-stock">{{ __('Stock') }}</span>
+            <span role="columnheader" class="text-right">{{ __('Price') }}</span>
+            <span role="columnheader" class="text-right text-gray-400/60 dark:text-gray-500/60 font-normal">..</span>
+          </div>
+
+          <!-- Both layouts stay virtualized so large catalogs and live search remain fluid. -->
+          <div
+            v-if="itemsStore.filteredItems.length > 0"
+            :role="viewMode === 'table' ? 'rowgroup' : undefined"
+            :style="{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }"
           >
             <div
-              class="grid animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
-              :class="viewMode === 'table' ? 'pb-1.5' : 'pb-2'"
-              style="gap: var(--margin-sm, 8px);"
-              :style="viewMode === 'card'
-                ? { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }
-                : undefined"
+              v-for="virtualRow in virtualizer.getVirtualItems()"
+              :key="virtualRow.index"
+              :ref="(el) => { if (el) virtualizer.measureElement(el as Element) }"
+              :data-index="virtualRow.index"
+              :style="{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+                paddingLeft: 'var(--padding-sm, 8px)',
+                paddingRight: 'var(--padding-sm, 8px)',
+              }"
             >
-              <ItemCard
-                v-if="viewMode === 'card'"
-                v-for="item in rows[virtualRow.index]"
-                :key="item.item_code"
-                :item="item"
-                @select="onItemSelect"
-              />
-              <ItemTableRow
-                v-else
-                :item="rows[virtualRow.index][0]"
-                @select="onItemSelect"
-              />
+              <div
+                class="grid animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
+                :class="viewMode === 'table' ? 'pb-2' : 'pb-2'"
+                style="gap: var(--margin-sm, 8px);"
+                :style="viewMode === 'card'
+                  ? { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }
+                  : undefined"
+              >
+                <ItemCard
+                  v-if="viewMode === 'card'"
+                  v-for="item in rows[virtualRow.index]"
+                  :key="item.item_code"
+                  :item="item"
+                  @select="onItemSelect"
+                />
+                <ItemTableRow
+                  v-else
+                  :item="rows[virtualRow.index][0]"
+                  :is-alternate="virtualRow.index % 2 === 1"
+                  @select="onItemSelect"
+                />
+              </div>
             </div>
           </div>
         </div>
+        <!-- Gradient white transparent overlay at the bottom -->
+        <div class="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white to-transparent dark:from-gray-950 dark:to-transparent z-10" />
       </div>
     </div>
 

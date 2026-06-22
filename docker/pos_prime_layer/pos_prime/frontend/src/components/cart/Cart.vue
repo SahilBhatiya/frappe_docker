@@ -4,8 +4,8 @@
 <script setup lang="ts">
 import CustomerDetailPanel from "@/components/customer/CustomerDetailPanel.vue";
 import CustomerSelector from "@/components/customer/CustomerSelector.vue";
-import Input from "@/components/ui/input/Input.vue";
 import { Button } from "@/components/ui/button";
+import Input from "@/components/ui/input/Input.vue";
 import { useCurrency } from "@/composables/useCurrency";
 import { useTouchDevice } from "@/composables/useTouchDevice";
 import { useCartStore } from "@/stores/cart";
@@ -140,12 +140,12 @@ const emit = defineEmits<{
 <template>
 	<div class="flex flex-col h-full bg-white dark:bg-gray-900">
 		<!-- Customer section (ERPNext-style: separate area at top) -->
-		<div class="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+		<div class="px-3 py-2 ">
 			<CustomerSelector @open-detail="showCustomerDetail = true" />
 		</div>
 
 		<!-- Customer detail panel -->
-		<Transition name="customer-drawer">
+		<Transition name="customer-drawer" mode="out-in">
 			<CustomerDetailPanel
 				v-if="showCustomerDetail && customerStore.customer"
 				@close="showCustomerDetail = false"

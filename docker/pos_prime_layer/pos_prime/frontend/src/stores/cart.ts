@@ -8,7 +8,41 @@ import type { CartItem, Item, TaxRow, InvoiceOptions } from '@/types'
 
 let taxRequestId = 0
 
+// Persist the cart across page reloads / tab switches so an in-progress
+// sale is not lost when the user navigates away and comes back. The cart is
+// scoped per shift (POS Opening Entry) so cashiers sharing a terminal never
+// see each other's cart — see hydrate().
+const STORAGE_PREFIX = 'pos_prime_cart::'
+
+function scopedKey(shiftId: string | null): string {
+  return STORAGE_PREFIX + (shiftId || 'default')
+}
+
+interface PersistedCart {
+  items: CartItem[]
+  selectedItemIndex: number | null
+  discountType: 'percentage' | 'amount'
+  discountValue: number
+  applyDiscountOn: 'Grand Total' | 'Net Total'
+  couponCode: string | null
+  invoiceOptions: InvoiceOptions
+}
+
+function readPersistedCart(key: string): Partial<PersistedCart> {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return {}
+    return JSON.parse(raw) as Partial<PersistedCart>
+  } catch {
+    return {}
+  }
+}
+
 export const useCartStore = defineStore('cart', () => {
+  // Storage key for the currently active shift. Null until hydrate() runs,
+  // which gates persistence so we never write before the shift is known.
+  const currentStorageKey = ref<string | null>(null)
+
   const items = ref<CartItem[]>([])
   const selectedItemIndex = ref<number | null>(null)
 
@@ -64,6 +98,54 @@ export const useCartStore = defineStore('cart', () => {
   const totalItems = computed(() =>
     items.value.reduce((sum, item) => sum + item.qty, 0)
   )
+
+  // Persist user-facing cart state to localStorage on any change so it
+  // survives reloads and tab switches. Server-derived totals are not stored —
+  // they are recalculated once the POS profile/customer are available.
+  // Gated on currentStorageKey so we never persist before hydrate() sets the
+  // shift scope (which would otherwise write an empty cart to a stale key).
+  function persistCart() {
+    if (!currentStorageKey.value) return
+    try {
+      const snapshot: PersistedCart = {
+        items: items.value,
+        selectedItemIndex: selectedItemIndex.value,
+        discountType: discountType.value,
+        discountValue: discountValue.value,
+        applyDiscountOn: applyDiscountOn.value,
+        couponCode: couponCode.value,
+        invoiceOptions: invoiceOptions.value,
+      }
+      localStorage.setItem(currentStorageKey.value, JSON.stringify(snapshot))
+    } catch {
+      // storage may be unavailable (private mode/quota) — ignore
+    }
+  }
+
+  watch(
+    [items, selectedItemIndex, discountType, discountValue, applyDiscountOn, couponCode, invoiceOptions],
+    persistCart,
+    { deep: true }
+  )
+
+  // Bind the cart to a shift (POS Opening Entry) and restore that shift's
+  // saved cart. Call this once the shift is known (e.g. POS view onMounted).
+  // Server-derived totals are recalculated once profile & customer load.
+  function hydrate(shiftId: string | null) {
+    const key = scopedKey(shiftId)
+    currentStorageKey.value = key
+    const saved = readPersistedCart(key)
+    items.value = saved.items ?? []
+    selectedItemIndex.value = saved.selectedItemIndex ?? null
+    discountType.value = saved.discountType ?? 'percentage'
+    discountValue.value = saved.discountValue ?? 0
+    applyDiscountOn.value = saved.applyDiscountOn ?? 'Grand Total'
+    couponCode.value = saved.couponCode ?? null
+    invoiceOptions.value = saved.invoiceOptions ?? {}
+    if (items.value.length > 0) {
+      debounceTaxCalculation()
+    }
+  }
 
   function addItem(item: Item, validateStock = true): string | null {
     // Stock validation: check available qty for stock items
@@ -435,6 +517,15 @@ export const useCartStore = defineStore('cart', () => {
     }
     taxRequestId++
     clearTaxData()
+    // Remove only this shift's saved cart; keep currentStorageKey so further
+    // adds within the same shift persist again.
+    if (currentStorageKey.value) {
+      try {
+        localStorage.removeItem(currentStorageKey.value)
+      } catch {
+        // ignore
+      }
+    }
   }
 
   return {
@@ -472,6 +563,7 @@ export const useCartStore = defineStore('cart', () => {
     setInvoiceOptions,
     error,
     calculateTaxes,
+    hydrate,
     $reset,
   }
 })

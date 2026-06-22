@@ -1,17 +1,10 @@
 /// <reference types="vite/client" />
+import 'vue'
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   const component: DefineComponent<{}, {}, any>
   export default component
-}
-
-/** Frappe translation function — available globally via window.__ */
-declare function __(msg: string, replace?: Record<string, string> | string[], context?: string): string
-
-interface Window {
-  posPageSetProfile?: (profileName: string) => void
-  posPageClearProfile?: () => void
 }
 
 declare module 'frappe-ui' {
@@ -36,3 +29,11 @@ declare module 'frappe-ui' {
   export const Tooltip: any
   export const Dropdown: any
 }
+
+declare module 'vue' {
+  export interface ComponentCustomProperties {
+    __: (msg: string, replace?: Record<string, string> | string[], context?: string) => string
+  }
+}
+
+

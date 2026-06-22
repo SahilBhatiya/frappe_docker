@@ -190,445 +190,432 @@ function timeAgo(dateStr: string): string {
 
 <template>
 	<div
-			class="customer-detail-overlay fixed inset-0 z-50 flex items-stretch justify-end"
-			role="dialog"
-			aria-modal="true"
-			@keydown.escape="emit('close')"
-		>
-			<!-- Backdrop -->
-			<div
-				class="customer-detail-backdrop absolute inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-md"
-				@click="emit('close')"
-			/>
+		class="customer-detail-overlay fixed inset-0 z-50 flex items-stretch justify-end"
+		role="dialog"
+		aria-modal="true"
+		@keydown.escape="emit('close')"
+	>
+		<!-- Backdrop -->
+		<div
+			class="customer-detail-backdrop absolute inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-sm"
+			@click="emit('close')"
+		/>
 
-			<!-- Panel (slide-in from right) -->
+		<!-- Panel (slide-in from right) -->
+		<div
+			class="customer-detail-panel relative w-full m-2 rounded-2xl max-w-md bg-white/90 backdrop-blur-xl dark:bg-gray-900 shadow-2xl dark:shadow-black/50 flex flex-col overflow-hidden"
+		>
+			<!-- Header -->
 			<div
-				class="customer-detail-panel relative w-full m-2 rounded-2xl max-w-md bg-white/90 backdrop-blur-xl dark:bg-gray-900 shadow-2xl dark:shadow-black/50 flex flex-col overflow-hidden"
+				class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
 			>
-				<!-- Header -->
+				<h3 class="text-sm font-bold text-gray-900 dark:text-gray-100">
+					{{ __("Customer Details") }}
+				</h3>
+				<div class="flex items-center gap-1">
+					<button
+						@click="openCustomerForm"
+						class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-950 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+						:title="__('Open Full Form')"
+					>
+						<ExternalLink :size="14" />
+					</button>
+					<button
+						@click="emit('close')"
+						class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+					>
+						<X :size="16" />
+					</button>
+				</div>
+			</div>
+
+			<!-- Scrollable content -->
+			<div v-if="customerStore.customer" class="flex-1 overflow-y-auto">
+				<!-- Customer identity -->
+				<div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
+					<div class="flex items-center gap-3">
+						<div
+							class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center shrink-0"
+						>
+							<User :size="22" class="text-gray-950 dark:text-gray-100" />
+						</div>
+						<div class="min-w-0">
+							<div
+								class="text-base font-bold text-gray-900 dark:text-gray-100 truncate"
+							>
+								{{ customerStore.customer.customer_name }}
+							</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400">
+								{{ customerStore.customer.name }}
+							</div>
+							<div
+								v-if="customerStore.customer.customer_group"
+								class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5"
+							>
+								{{ customerStore.customer.customer_group }}
+								<span v-if="customerStore.customer.territory">
+									&middot; {{ customerStore.customer.territory }}</span
+								>
+							</div>
+						</div>
+					</div>
+
+					<!-- Quick stats -->
+					<div class="flex gap-2 mt-3 flex-wrap">
+						<div
+							v-if="customerStore.loyaltyPoints > 0"
+							class="flex items-center gap-1 px-2 py-1 bg-violet-50 dark:bg-violet-900/20 rounded-lg"
+						>
+							<Tag :size="12" class="text-violet-500" />
+							<span
+								class="text-xs font-semibold text-violet-700 dark:text-violet-400"
+								>{{ customerStore.loyaltyPoints }} {{ __("pts") }}</span
+							>
+						</div>
+						<div
+							v-if="customerStore.outstanding > 0"
+							class="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg"
+						>
+							<AlertTriangle :size="12" class="text-amber-500" />
+							<span class="text-xs font-semibold text-amber-700 dark:text-amber-400"
+								>{{ __("Outstanding") }}:
+								{{ formatCurrency(customerStore.outstanding) }}</span
+							>
+						</div>
+						<div
+							v-if="customerStore.creditLimit > 0"
+							class="flex items-center gap-1 px-2 py-1 rounded-lg"
+							:class="
+								customerStore.outstanding > customerStore.creditLimit
+									? 'bg-red-50 dark:bg-red-900/20'
+									: 'bg-gray-50 dark:bg-gray-800'
+							"
+						>
+							<CreditCard
+								:size="12"
+								:class="
+									customerStore.outstanding > customerStore.creditLimit
+										? 'text-red-500'
+										: 'text-gray-400'
+								"
+							/>
+							<span
+								class="text-xs font-semibold"
+								:class="
+									customerStore.outstanding > customerStore.creditLimit
+										? 'text-red-700 dark:text-red-400'
+										: 'text-gray-600 dark:text-gray-400'
+								"
+								>{{ __("Limit") }}:
+								{{ formatCurrency(customerStore.creditLimit) }}</span
+							>
+						</div>
+						<div
+							v-if="customerStore.storeCredit > 0"
+							class="flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-lg"
+						>
+							<Wallet :size="12" class="text-green-500" />
+							<span class="text-xs font-semibold text-green-700 dark:text-green-400"
+								>{{ __("Credit") }}:
+								{{ formatCurrency(customerStore.storeCredit) }}</span
+							>
+						</div>
+					</div>
+				</div>
+
+				<!-- Editable fields -->
+				<div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 space-y-3">
+					<div
+						class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider"
+					>
+						{{ __("Contact Details") }}
+					</div>
+
+					<!-- Email -->
+					<div>
+						<label
+							class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1 block"
+							>{{ __("Email") }}</label
+						>
+						<div class="flex items-center gap-2">
+							<Mail :size="14" class="text-gray-400 shrink-0" />
+							<Input
+								v-model="editEmail"
+								type="email"
+								:placeholder="__('Email address')"
+								@blur="saveField('email_id')"
+								@keydown.enter="($event.target as HTMLInputElement).blur()"
+								:disabled="savingField === 'email_id'"
+								class="flex-1 text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 transition-colors disabled:opacity-50 placeholder-gray-400 dark:placeholder-gray-500"
+							/>
+							<span
+								v-if="savingField === 'email_id'"
+								class="text-[10px] text-gray-700 dark:text-gray-300 shrink-0"
+								>{{ __("Saving...") }}</span
+							>
+						</div>
+					</div>
+
+					<!-- Mobile -->
+					<div>
+						<label
+							class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1 block"
+							>{{ __("Mobile") }}</label
+						>
+						<div class="flex items-center gap-2">
+							<Phone :size="14" class="text-gray-400 shrink-0" />
+							<Input
+								v-model="editMobile"
+								type="tel"
+								:placeholder="__('Mobile number')"
+								@blur="saveField('mobile_no')"
+								@keydown.enter="($event.target as HTMLInputElement).blur()"
+								:disabled="savingField === 'mobile_no'"
+								class="flex-1 text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 transition-colors disabled:opacity-50 placeholder-gray-400 dark:placeholder-gray-500"
+							/>
+							<span
+								v-if="savingField === 'mobile_no'"
+								class="text-[10px] text-gray-700 dark:text-gray-300 shrink-0"
+								>{{ __("Saving...") }}</span
+							>
+						</div>
+					</div>
+
+					<!-- WhatsApp -->
+					<div>
+						<label
+							class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1 block"
+							>{{ __("WhatsApp") }}</label
+						>
+						<div class="flex items-center gap-2">
+							<MessageCircle :size="14" class="text-[#25D366] shrink-0" />
+							<Input
+								v-model="editWhatsapp"
+								type="tel"
+								:placeholder="__('WhatsApp number')"
+								@blur="saveField('custom_whatsapp')"
+								@keydown.enter="($event.target as HTMLInputElement).blur()"
+								:disabled="savingField === 'custom_whatsapp'"
+								class="flex-1 text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 transition-colors disabled:opacity-50 placeholder-gray-400 dark:placeholder-gray-500"
+							/>
+							<span
+								v-if="savingField === 'custom_whatsapp'"
+								class="text-[10px] text-gray-700 dark:text-gray-300 shrink-0"
+								>{{ __("Saving...") }}</span
+							>
+							<button
+								v-else-if="editWhatsapp"
+								type="button"
+								@click="openWhatsapp(editWhatsapp)"
+								:title="__('Open chat in WhatsApp')"
+								class="shrink-0 inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-[#25D366]/10 text-[#1fa855] dark:text-[#25D366] hover:bg-[#25D366]/20 transition-colors text-[11px] font-semibold"
+							>
+								{{ __("Chat") }}
+								<ExternalLink :size="11" />
+							</button>
+						</div>
+					</div>
+
+					<!-- Loyalty Program -->
+					<div
+						v-if="customerStore.customer.loyalty_program || editLoyaltyProgram"
+						class="flex items-center gap-2"
+					>
+						<Tag :size="14" class="text-gray-400 shrink-0" />
+						<span class="text-sm text-gray-600 dark:text-gray-400">{{
+							editLoyaltyProgram || __("No loyalty program")
+						}}</span>
+					</div>
+
+					<!-- Primary Address -->
+					<div v-if="customerStore.addresses.length > 0" class="flex items-start gap-2">
+						<MapPin :size="14" class="text-gray-400 shrink-0 mt-0.5" />
+						<div class="text-xs text-gray-600 dark:text-gray-400">
+							<span class="font-medium text-gray-700 dark:text-gray-300">
+								{{
+									customerStore.addresses.find((a) => a.is_primary_address)
+										?.address_title || customerStore.addresses[0].address_title
+								}}
+							</span>
+							<br />
+							{{
+								customerStore.addresses.find((a) => a.is_primary_address)
+									?.address_line1 || customerStore.addresses[0].address_line1
+							}}
+							<span
+								v-if="
+									(
+										customerStore.addresses.find(
+											(a) => a.is_primary_address,
+										) || customerStore.addresses[0]
+									).city
+								"
+							>
+								,
+								{{
+									(
+										customerStore.addresses.find(
+											(a) => a.is_primary_address,
+										) || customerStore.addresses[0]
+									).city
+								}}
+							</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Cars -->
 				<div
-					class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900"
+					v-if="customerStore.cars.length > 0"
+					class="px-4 py-3 border-b border-gray-100 dark:border-gray-800"
 				>
-					<h3 class="text-sm font-bold text-gray-900 dark:text-gray-100">
-						{{ __("Customer Details") }}
-					</h3>
-					<div class="flex items-center gap-1">
+					<div
+						class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2"
+					>
+						{{ __("Cars") }}
+					</div>
+					<div class="space-y-1.5">
 						<button
-							@click="openCustomerForm"
-							class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-950 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-							:title="__('Open Full Form')"
+							v-for="(c, i) in customerStore.cars"
+							:key="c.name || i"
+							type="button"
+							@click="openCar(c.name)"
+							:disabled="!c.name"
+							class="w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors group"
+							:class="
+								c.name
+									? 'hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
+									: 'cursor-default'
+							"
 						>
-							<ExternalLink :size="14" />
-						</button>
-						<button
-							@click="emit('close')"
-							class="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-						>
-							<X :size="16" />
+							<div
+								class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 mt-0.5"
+							>
+								<Car :size="14" class="text-gray-500 dark:text-gray-400" />
+							</div>
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-1.5">
+									<span
+										class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate"
+									>
+										{{ c.registration_number || c.make_model || __("Car") }}
+									</span>
+									<span
+										v-if="c.registration_number && c.make_model"
+										class="text-xs text-gray-500 dark:text-gray-400 truncate"
+									>
+										· {{ c.make_model }}
+									</span>
+								</div>
+								<div
+									v-if="c.current_odometer || c.monthly_driven"
+									class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5"
+								>
+									<span v-if="c.current_odometer"
+										>{{ formatKm(c.current_odometer) }} {{ __("km") }}</span
+									>
+									<span v-if="c.current_odometer && c.monthly_driven"> · </span>
+									<span v-if="c.monthly_driven"
+										>~{{ formatKm(c.monthly_driven) }}/{{ __("mo") }}</span
+									>
+								</div>
+								<div
+									v-if="c.notes"
+									class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate"
+								>
+									{{ c.notes }}
+								</div>
+							</div>
+							<ExternalLink
+								v-if="c.name"
+								:size="12"
+								class="text-gray-300 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-100 shrink-0 mt-1"
+							/>
 						</button>
 					</div>
 				</div>
 
-				<!-- Scrollable content -->
-				<div v-if="customerStore.customer" class="flex-1 overflow-y-auto">
-					<!-- Customer identity -->
-					<div class="px-4 py-4 border-b border-gray-100 dark:border-gray-800">
-						<div class="flex items-center gap-3">
-							<div
-								class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-xl flex items-center justify-center shrink-0"
-							>
-								<User :size="22" class="text-gray-950 dark:text-gray-100" />
-							</div>
-							<div class="min-w-0">
-								<div
-									class="text-base font-bold text-gray-900 dark:text-gray-100 truncate"
-								>
-									{{ customerStore.customer.customer_name }}
-								</div>
-								<div class="text-xs text-gray-500 dark:text-gray-400">
-									{{ customerStore.customer.name }}
-								</div>
-								<div
-									v-if="customerStore.customer.customer_group"
-									class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5"
-								>
-									{{ customerStore.customer.customer_group }}
-									<span v-if="customerStore.customer.territory">
-										&middot; {{ customerStore.customer.territory }}</span
-									>
-								</div>
-							</div>
-						</div>
-
-						<!-- Quick stats -->
-						<div class="flex gap-2 mt-3 flex-wrap">
-							<div
-								v-if="customerStore.loyaltyPoints > 0"
-								class="flex items-center gap-1 px-2 py-1 bg-violet-50 dark:bg-violet-900/20 rounded-lg"
-							>
-								<Tag :size="12" class="text-violet-500" />
-								<span
-									class="text-xs font-semibold text-violet-700 dark:text-violet-400"
-									>{{ customerStore.loyaltyPoints }} {{ __("pts") }}</span
-								>
-							</div>
-							<div
-								v-if="customerStore.outstanding > 0"
-								class="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded-lg"
-							>
-								<AlertTriangle :size="12" class="text-amber-500" />
-								<span
-									class="text-xs font-semibold text-amber-700 dark:text-amber-400"
-									>{{ __("Outstanding") }}:
-									{{ formatCurrency(customerStore.outstanding) }}</span
-								>
-							</div>
-							<div
-								v-if="customerStore.creditLimit > 0"
-								class="flex items-center gap-1 px-2 py-1 rounded-lg"
-								:class="
-									customerStore.outstanding > customerStore.creditLimit
-										? 'bg-red-50 dark:bg-red-900/20'
-										: 'bg-gray-50 dark:bg-gray-800'
-								"
-							>
-								<CreditCard
-									:size="12"
-									:class="
-										customerStore.outstanding > customerStore.creditLimit
-											? 'text-red-500'
-											: 'text-gray-400'
-									"
-								/>
-								<span
-									class="text-xs font-semibold"
-									:class="
-										customerStore.outstanding > customerStore.creditLimit
-											? 'text-red-700 dark:text-red-400'
-											: 'text-gray-600 dark:text-gray-400'
-									"
-									>{{ __("Limit") }}:
-									{{ formatCurrency(customerStore.creditLimit) }}</span
-								>
-							</div>
-							<div
-								v-if="customerStore.storeCredit > 0"
-								class="flex items-center gap-1 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-lg"
-							>
-								<Wallet :size="12" class="text-green-500" />
-								<span
-									class="text-xs font-semibold text-green-700 dark:text-green-400"
-									>{{ __("Credit") }}:
-									{{ formatCurrency(customerStore.storeCredit) }}</span
-								>
-							</div>
-						</div>
-					</div>
-
-					<!-- Editable fields -->
-					<div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800 space-y-3">
+				<!-- Recent Transactions -->
+				<div class="px-4 py-3">
+					<div class="flex items-center justify-between mb-2">
 						<div
 							class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider"
 						>
-							{{ __("Contact Details") }}
+							{{ __("Recent Transactions") }}
 						</div>
-
-						<!-- Email -->
-						<div>
-							<label
-								class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1 block"
-								>{{ __("Email") }}</label
-							>
-							<div class="flex items-center gap-2">
-								<Mail :size="14" class="text-gray-400 shrink-0" />
-								<Input
-									v-model="editEmail"
-									type="email"
-									:placeholder="__('Email address')"
-									@blur="saveField('email_id')"
-									@keydown.enter="($event.target as HTMLInputElement).blur()"
-									:disabled="savingField === 'email_id'"
-									class="flex-1 text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 transition-colors disabled:opacity-50 placeholder-gray-400 dark:placeholder-gray-500"
-								/>
-								<span
-									v-if="savingField === 'email_id'"
-									class="text-[10px] text-gray-700 dark:text-gray-300 shrink-0"
-									>{{ __("Saving...") }}</span
-								>
-							</div>
-						</div>
-
-						<!-- Mobile -->
-						<div>
-							<label
-								class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1 block"
-								>{{ __("Mobile") }}</label
-							>
-							<div class="flex items-center gap-2">
-								<Phone :size="14" class="text-gray-400 shrink-0" />
-								<Input
-									v-model="editMobile"
-									type="tel"
-									:placeholder="__('Mobile number')"
-									@blur="saveField('mobile_no')"
-									@keydown.enter="($event.target as HTMLInputElement).blur()"
-									:disabled="savingField === 'mobile_no'"
-									class="flex-1 text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 transition-colors disabled:opacity-50 placeholder-gray-400 dark:placeholder-gray-500"
-								/>
-								<span
-									v-if="savingField === 'mobile_no'"
-									class="text-[10px] text-gray-700 dark:text-gray-300 shrink-0"
-									>{{ __("Saving...") }}</span
-								>
-							</div>
-						</div>
-
-						<!-- WhatsApp -->
-						<div>
-							<label
-								class="text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1 block"
-								>{{ __("WhatsApp") }}</label
-							>
-							<div class="flex items-center gap-2">
-								<MessageCircle :size="14" class="text-[#25D366] shrink-0" />
-								<Input
-									v-model="editWhatsapp"
-									type="tel"
-									:placeholder="__('WhatsApp number')"
-									@blur="saveField('custom_whatsapp')"
-									@keydown.enter="($event.target as HTMLInputElement).blur()"
-									:disabled="savingField === 'custom_whatsapp'"
-									class="flex-1 text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 transition-colors disabled:opacity-50 placeholder-gray-400 dark:placeholder-gray-500"
-								/>
-								<span
-									v-if="savingField === 'custom_whatsapp'"
-									class="text-[10px] text-gray-700 dark:text-gray-300 shrink-0"
-									>{{ __("Saving...") }}</span
-								>
-								<button
-									v-else-if="editWhatsapp"
-									type="button"
-									@click="openWhatsapp(editWhatsapp)"
-									:title="__('Open chat in WhatsApp')"
-									class="shrink-0 inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-[#25D366]/10 text-[#1fa855] dark:text-[#25D366] hover:bg-[#25D366]/20 transition-colors text-[11px] font-semibold"
-								>
-									{{ __("Chat") }}
-									<ExternalLink :size="11" />
-								</button>
-							</div>
-						</div>
-
-						<!-- Loyalty Program -->
-						<div
-							v-if="customerStore.customer.loyalty_program || editLoyaltyProgram"
-							class="flex items-center gap-2"
+						<span
+							v-if="transactions.length > 0"
+							class="text-[10px] text-gray-400 dark:text-gray-500"
 						>
-							<Tag :size="14" class="text-gray-400 shrink-0" />
-							<span class="text-sm text-gray-600 dark:text-gray-400">{{
-								editLoyaltyProgram || __("No loyalty program")
-							}}</span>
-						</div>
+							{{ __("Last") }}: {{ timeAgo(transactions[0]?.posting_date) }}
+						</span>
+					</div>
 
-						<!-- Primary Address -->
-						<div
-							v-if="customerStore.addresses.length > 0"
-							class="flex items-start gap-2"
+					<div v-if="loadingTx" class="py-6 text-center">
+						<span class="text-xs text-gray-400 dark:text-gray-500">{{
+							__("Loading...")
+						}}</span>
+					</div>
+
+					<div v-else-if="transactions.length === 0" class="py-6 text-center">
+						<FileText
+							:size="24"
+							class="text-gray-300 dark:text-gray-600 mx-auto mb-1"
+						/>
+						<span class="text-xs text-gray-400 dark:text-gray-500">{{
+							__("No transactions found")
+						}}</span>
+					</div>
+
+					<div v-else class="space-y-1">
+						<button
+							v-for="tx in transactions"
+							:key="tx.name"
+							@click="openInvoice(tx.name)"
+							class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left group"
 						>
-							<MapPin :size="14" class="text-gray-400 shrink-0 mt-0.5" />
-							<div class="text-xs text-gray-600 dark:text-gray-400">
-								<span class="font-medium text-gray-700 dark:text-gray-300">
-									{{
-										customerStore.addresses.find((a) => a.is_primary_address)
-											?.address_title ||
-										customerStore.addresses[0].address_title
-									}}
-								</span>
-								<br />
-								{{
-									customerStore.addresses.find((a) => a.is_primary_address)
-										?.address_line1 || customerStore.addresses[0].address_line1
-								}}
-								<span
-									v-if="
-										(
-											customerStore.addresses.find(
-												(a) => a.is_primary_address,
-											) || customerStore.addresses[0]
-										).city
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-1.5">
+									<span
+										class="text-xs font-semibold text-gray-800 dark:text-gray-200"
+										>{{ tx.name }}</span
+									>
+									<span
+										class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold"
+										:class="statusColor(tx.status, tx.is_return)"
+									>
+										{{ tx.is_return ? __("Return") : tx.status }}
+									</span>
+								</div>
+								<div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+									{{ formatDate(tx.posting_date) }}
+								</div>
+							</div>
+							<div class="text-right shrink-0">
+								<div
+									class="text-sm font-bold"
+									:class="
+										tx.is_return
+											? 'text-red-600 dark:text-red-400'
+											: 'text-gray-800 dark:text-gray-200'
 									"
 								>
-									,
-									{{
-										(
-											customerStore.addresses.find(
-												(a) => a.is_primary_address,
-											) || customerStore.addresses[0]
-										).city
-									}}
-								</span>
-							</div>
-						</div>
-					</div>
-
-					<!-- Cars -->
-					<div
-						v-if="customerStore.cars.length > 0"
-						class="px-4 py-3 border-b border-gray-100 dark:border-gray-800"
-					>
-						<div
-							class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2"
-						>
-							{{ __("Cars") }}
-						</div>
-						<div class="space-y-1.5">
-							<button
-								v-for="(c, i) in customerStore.cars"
-								:key="c.name || i"
-								type="button"
-								@click="openCar(c.name)"
-								:disabled="!c.name"
-								class="w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors group"
-								:class="
-									c.name
-										? 'hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
-										: 'cursor-default'
-								"
-							>
-								<div
-									class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 mt-0.5"
-								>
-									<Car :size="14" class="text-gray-500 dark:text-gray-400" />
+									{{ tx.is_return ? "-" : ""
+									}}{{ formatCurrency(tx.grand_total) }}
 								</div>
-								<div class="flex-1 min-w-0">
-									<div class="flex items-center gap-1.5">
-										<span
-											class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate"
-										>
-											{{
-												c.registration_number || c.make_model || __("Car")
-											}}
-										</span>
-										<span
-											v-if="c.registration_number && c.make_model"
-											class="text-xs text-gray-500 dark:text-gray-400 truncate"
-										>
-											· {{ c.make_model }}
-										</span>
-									</div>
-									<div
-										v-if="c.current_odometer || c.monthly_driven"
-										class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5"
-									>
-										<span v-if="c.current_odometer"
-											>{{ formatKm(c.current_odometer) }}
-											{{ __("km") }}</span
-										>
-										<span v-if="c.current_odometer && c.monthly_driven">
-											·
-										</span>
-										<span v-if="c.monthly_driven"
-											>~{{ formatKm(c.monthly_driven) }}/{{ __("mo") }}</span
-										>
-									</div>
-									<div
-										v-if="c.notes"
-										class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate"
-									>
-										{{ c.notes }}
-									</div>
+								<div class="text-[10px] text-gray-400 dark:text-gray-500">
+									{{ tx.total_qty }} {{ __("items") }}
 								</div>
-								<ExternalLink
-									v-if="c.name"
-									:size="12"
-									class="text-gray-300 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-100 shrink-0 mt-1"
-								/>
-							</button>
-						</div>
-					</div>
-
-					<!-- Recent Transactions -->
-					<div class="px-4 py-3">
-						<div class="flex items-center justify-between mb-2">
-							<div
-								class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider"
-							>
-								{{ __("Recent Transactions") }}
 							</div>
-							<span
-								v-if="transactions.length > 0"
-								class="text-[10px] text-gray-400 dark:text-gray-500"
-							>
-								{{ __("Last") }}: {{ timeAgo(transactions[0]?.posting_date) }}
-							</span>
-						</div>
-
-						<div v-if="loadingTx" class="py-6 text-center">
-							<span class="text-xs text-gray-400 dark:text-gray-500">{{
-								__("Loading...")
-							}}</span>
-						</div>
-
-						<div v-else-if="transactions.length === 0" class="py-6 text-center">
-							<FileText
-								:size="24"
-								class="text-gray-300 dark:text-gray-600 mx-auto mb-1"
+							<ExternalLink
+								:size="12"
+								class="text-gray-300 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-100 shrink-0"
 							/>
-							<span class="text-xs text-gray-400 dark:text-gray-500">{{
-								__("No transactions found")
-							}}</span>
-						</div>
-
-						<div v-else class="space-y-1">
-							<button
-								v-for="tx in transactions"
-								:key="tx.name"
-								@click="openInvoice(tx.name)"
-								class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left group"
-							>
-								<div class="flex-1 min-w-0">
-									<div class="flex items-center gap-1.5">
-										<span
-											class="text-xs font-semibold text-gray-800 dark:text-gray-200"
-											>{{ tx.name }}</span
-										>
-										<span
-											class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold"
-											:class="statusColor(tx.status, tx.is_return)"
-										>
-											{{ tx.is_return ? __("Return") : tx.status }}
-										</span>
-									</div>
-									<div
-										class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5"
-									>
-										{{ formatDate(tx.posting_date) }}
-									</div>
-								</div>
-								<div class="text-right shrink-0">
-									<div
-										class="text-sm font-bold"
-										:class="
-											tx.is_return
-												? 'text-red-600 dark:text-red-400'
-												: 'text-gray-800 dark:text-gray-200'
-										"
-									>
-										{{ tx.is_return ? "-" : ""
-										}}{{ formatCurrency(tx.grand_total) }}
-									</div>
-									<div class="text-[10px] text-gray-400 dark:text-gray-500">
-										{{ tx.total_qty }} {{ __("items") }}
-									</div>
-								</div>
-								<ExternalLink
-									:size="12"
-									class="text-gray-300 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-100 shrink-0"
-								/>
-							</button>
-						</div>
+						</button>
 					</div>
 				</div>
 			</div>
+		</div>
 	</div>
 </template>
 

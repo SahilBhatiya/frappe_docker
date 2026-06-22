@@ -149,6 +149,9 @@ async function initializeSession() {
     sessionStore.company = entry.company
     sessionStore.isOpen = true
 
+    // Restore this shift's saved cart (scoped per POS Opening Entry)
+    cartStore.hydrate(sessionStore.openingEntry)
+
     // Load POS Profile
     await settingsStore.loadPOSProfile(entry.pos_profile)
 

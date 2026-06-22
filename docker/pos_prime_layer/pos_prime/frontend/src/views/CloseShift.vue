@@ -6,6 +6,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePosSessionStore } from '@/stores/posSession'
 import { useSettingsStore } from '@/stores/settings'
+import { useCartStore } from '@/stores/cart'
 import { useCurrency } from '@/composables/useCurrency'
 import { useDeskMode } from '@/composables/useDeskMode'
 import { call } from 'frappe-ui'
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/button'
 const router = useRouter()
 const sessionStore = usePosSessionStore()
 const settingsStore = useSettingsStore()
+const cartStore = useCartStore()
 const { formatCurrency } = useCurrency()
 const { isDeskMode } = useDeskMode()
 
@@ -109,6 +111,8 @@ async function handleCloseShift() {
         closing_amount: ps.closing_amount,
       }))
     )
+    // Discard this shift's in-progress cart and its saved storage entry
+    cartStore.$reset()
     router.replace({ name: 'OpenShift' })
   } catch (e: any) {
     error.value = e.messages?.[0] || e.message || 'Failed to close shift'

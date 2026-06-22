@@ -30,6 +30,11 @@ const routes = [
         component: () => import('./views/CustomerDisplay.vue'),
         name: 'CustomerDetail',
       },
+      {
+        path: 'alignment-history',
+        component: () => import('./views/AlignmentHistory.vue'),
+        name: 'AlignmentHistory',
+      },
     ],
   },
   {
