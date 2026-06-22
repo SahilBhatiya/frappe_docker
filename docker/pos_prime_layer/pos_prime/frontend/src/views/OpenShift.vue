@@ -10,6 +10,8 @@ import { useCurrency } from '@/composables/useCurrency'
 import { useDeskMode } from '@/composables/useDeskMode'
 import { LogIn, Calculator } from 'lucide-vue-next'
 import DenominationCalculator from '@/components/shift/DenominationCalculator.vue'
+import Input from '@/components/ui/input/Input.vue'
+import { Button } from '@/components/ui/button'
 
 const router = useRouter()
 const sessionStore = usePosSessionStore()
@@ -126,8 +128,8 @@ async function openShift() {
   <div :class="['bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4', isDeskMode ? 'min-h-full' : 'min-h-screen']">
     <div class="w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
       <div class="flex items-center gap-3 mb-6">
-        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30">
-          <LogIn class="text-blue-600 dark:text-blue-400" :size="20" />
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800">
+          <LogIn class="text-gray-950 dark:text-gray-100" :size="20" />
         </div>
         <div>
           <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ __('Open POS Shift') }}</h1>
@@ -147,7 +149,7 @@ async function openShift() {
           <select
             v-model="selectedProfile"
             @change="onProfileChange"
-            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300"
           >
             <option value="">{{ __('Select Profile...') }}</option>
             <option
@@ -164,7 +166,7 @@ async function openShift() {
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {{ __('Company') }}
           </label>
-          <input
+          <Input
             :value="company"
             readonly
             class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-400"
@@ -185,18 +187,18 @@ async function openShift() {
               <span class="text-sm text-gray-600 dark:text-gray-400 w-28 shrink-0">
                 {{ balance.mode_of_payment }}
               </span>
-              <input
+              <Input
                 v-model.number="openingBalances[index].opening_amount"
                 type="number"
                 min="0"
                 step="0.01"
-                class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300"
                 placeholder="0.00"
               />
               <button
                 v-if="isCash(balance.mode_of_payment)"
                 @click="openDenomCalc(index)"
-                class="p-2 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                class="p-2 rounded-lg text-gray-400 hover:text-gray-950 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 title="Denomination calculator"
               >
                 <Calculator :size="18" />
@@ -205,13 +207,13 @@ async function openShift() {
           </div>
         </div>
 
-        <button
+        <Button
           @click="openShift"
           :disabled="loading || !selectedProfile"
-          class="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="w-full bg-gray-950 text-white hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white"
         >
           {{ loading ? __('Opening...') : __('Open Shift') }}
-        </button>
+        </Button>
       </div>
     </div>
 

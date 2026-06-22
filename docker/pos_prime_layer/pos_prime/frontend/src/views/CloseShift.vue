@@ -11,6 +11,8 @@ import { useDeskMode } from '@/composables/useDeskMode'
 import { call } from 'frappe-ui'
 import { LogOut, Calculator } from 'lucide-vue-next'
 import DenominationCalculator from '@/components/shift/DenominationCalculator.vue'
+import Input from '@/components/ui/input/Input.vue'
+import { Button } from '@/components/ui/button'
 
 const router = useRouter()
 const sessionStore = usePosSessionStore()
@@ -195,7 +197,7 @@ async function handleCloseShift() {
                   <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-300 font-medium">{{ formatCurrency(ps.expected_amount) }}</td>
                   <td class="px-3 py-2 text-right">
                     <div class="flex items-center justify-end gap-1">
-                      <input
+                      <Input
                         v-model.number="paymentSummary[index].closing_amount"
                         type="number"
                         min="0"
@@ -205,7 +207,7 @@ async function handleCloseShift() {
                       <button
                         v-if="isCash(ps.mode_of_payment)"
                         @click="openDenomCalc(index)"
-                        class="p-1 rounded text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                        class="p-1 rounded text-gray-400 hover:text-gray-950 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                         title="Denomination calculator"
                       >
                         <Calculator :size="16" />
@@ -225,19 +227,20 @@ async function handleCloseShift() {
         </div>
 
         <div class="flex gap-3">
-          <button
+          <Button
             @click="router.push({ name: 'POS' })"
-            class="flex-1 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            variant="secondary"
+            class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             {{ __('Cancel') }}
-          </button>
-          <button
+          </Button>
+          <Button
             @click="handleCloseShift"
             :disabled="loading"
-            class="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            class="flex-1 bg-red-600 text-white hover:bg-red-700"
           >
             {{ loading ? __('Closing...') : __('Close Shift') }}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

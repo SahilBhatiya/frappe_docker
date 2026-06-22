@@ -51,7 +51,7 @@ function selectBaud(baud: number) {
       <!-- Open web display -->
       <button
         @click="openCustomerDisplay"
-        class="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+        class="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-950 dark:hover:text-gray-100 transition-colors"
       >
         <Monitor :size="16" />
         Open Display Window
@@ -99,7 +99,7 @@ function selectBaud(baud: number) {
               class="block w-full px-3 py-1.5 text-xs text-left transition-colors"
               :class="
                 baud === baudRate
-                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-950 dark:text-gray-100 font-medium'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
               "
             >

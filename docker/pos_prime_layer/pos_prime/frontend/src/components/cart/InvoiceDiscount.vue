@@ -2,6 +2,7 @@
 <!-- Licensed under GPLv3. See license.txt -->
 
 <script setup lang="ts">
+import Input from '@/components/ui/input/Input.vue'
 import { ref, watch } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useSettingsStore } from '@/stores/settings'
@@ -57,8 +58,9 @@ watch([discountType, discountValue], ([type, value]) => {
             {{ __('Amount') }}
           </button>
         </div>
-        <input
-          v-model.number="discountValue"
+        <Input
+          :model-value="discountValue"
+          @update:model-value="discountValue = Number($event)"
           type="number"
           :min="0"
           :max="discountType === 'percentage' ? 100 : undefined"

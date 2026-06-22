@@ -2,6 +2,7 @@
 <!-- Licensed under GPLv3. See license.txt -->
 
 <script setup lang="ts">
+import Input from '@/components/ui/input/Input.vue'
 import { ref, computed } from 'vue'
 import { Search } from 'lucide-vue-next'
 
@@ -40,11 +41,11 @@ const filteredGroups = computed(() => {
       <div v-if="showSearch" class="px-2 pb-2">
         <div class="relative">
           <Search class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" :size="12" />
-          <input
+          <Input
             v-model="searchTerm"
             type="text"
             placeholder="Filter..."
-            class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 pl-7 pr-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 placeholder-gray-400 dark:placeholder-gray-500"
+            class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 pl-7 pr-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 placeholder-gray-400 dark:placeholder-gray-500"
           />
         </div>
       </div>
@@ -56,7 +57,7 @@ const filteredGroups = computed(() => {
           class="w-full text-left px-3 py-1.5 text-xs rounded-lg transition-all duration-150"
           :class="[
             selected === group
-              ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold'
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-950 dark:text-gray-100 font-semibold'
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-800 dark:hover:text-gray-200'
           ]"
         >
@@ -77,11 +78,11 @@ const filteredGroups = computed(() => {
     <div v-if="showSearch" class="px-3 pt-2">
       <div class="relative">
         <Search class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 pointer-events-none" :size="12" />
-        <input
+        <Input
           v-model="searchTerm"
           type="text"
           placeholder="Filter categories..."
-          class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 pl-7 pr-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400 placeholder-gray-400 dark:placeholder-gray-500"
+          class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 pl-7 pr-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
     </div>
@@ -93,7 +94,7 @@ const filteredGroups = computed(() => {
         class="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150"
         :class="
           selected === group
-            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+            ? 'bg-gray-950 text-white shadow-sm shadow-black/20'
             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
         "
       >

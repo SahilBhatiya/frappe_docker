@@ -31,7 +31,7 @@ const { formatCurrency } = useCurrency()
         item.is_free_item
           ? 'bg-green-50 dark:bg-green-900/10'
           : selected
-            ? 'bg-blue-50/50 dark:bg-blue-900/10'
+            ? 'bg-gray-100/70 dark:bg-gray-800/70'
             : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
       ]"
     >
@@ -61,7 +61,7 @@ const { formatCurrency } = useCurrency()
           </span>
           <span
             v-else-if="item.pricing_rules"
-            class="inline-flex items-center gap-0.5 px-1.5 py-0 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded text-[9px] font-bold shrink-0"
+            class="inline-flex items-center gap-0.5 px-1.5 py-0 bg-gray-200 dark:bg-gray-700 text-gray-950 dark:text-gray-100 rounded text-[9px] font-bold shrink-0"
           >
             <Zap :size="8" />
             {{ __('Promo') }}

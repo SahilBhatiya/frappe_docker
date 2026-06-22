@@ -11,6 +11,8 @@ import { useSettingsStore } from '@/stores/settings'
 import { useCurrency } from '@/composables/useCurrency'
 import { useTouchDevice } from '@/composables/useTouchDevice'
 import { X, Check, Banknote, CreditCard, Wallet, WalletCards, Coins, Award, Eraser, Delete, Loader2, AlertTriangle, BadgeDollarSign, Lock, Info, Star } from 'lucide-vue-next'
+import Input from '@/components/ui/input/Input.vue'
+import { Button } from '@/components/ui/button'
 
 const { isTouchDevice } = useTouchDevice()
 
@@ -440,9 +442,9 @@ const numpadKeys = ['1','2','3','4','5','6','7','8','9','.','0','DEL']
             <!-- Amount Received Input -->
             <div class="mb-6">
               <div class="text-sm text-gray-500 mb-2 font-medium">{{ __('Amount received') }}</div>
-              <input
+              <Input
                 v-if="!isTouchDevice"
-                :value="displayValue"
+                v-model="displayValue"
                 @input="onPaymentInput"
                 type="number"
                 step="any"
@@ -520,7 +522,7 @@ const numpadKeys = ['1','2','3','4','5','6','7','8','9','.','0','DEL']
             <div v-if="applyStoreCredit" class="mb-6 px-2 space-y-2">
               <div class="flex items-center gap-2">
                 <label class="text-xs text-gray-500 font-medium shrink-0">{{ __('Amount') }}:</label>
-                <input
+                <Input
                   v-model.number="storeCreditAmount"
                   type="number"
                   step="any"
@@ -562,7 +564,7 @@ const numpadKeys = ['1','2','3','4','5','6','7','8','9','.','0','DEL']
             <div v-if="redeemLoyalty" class="mb-6 px-2 space-y-2">
                 <div class="flex items-center gap-2">
                   <label class="text-xs text-gray-500 font-medium shrink-0">{{ __('Points') }}:</label>
-                  <input
+                  <Input
                     v-model.number="loyaltyPointsToRedeem"
                     type="number"
                     :min="0"
@@ -666,10 +668,10 @@ const numpadKeys = ['1','2','3','4','5','6','7','8','9','.','0','DEL']
             </div>
 
             <!-- Complete Payment Button -->
-            <button
+            <Button
               @click="handleSubmit"
               :disabled="!canSubmit"
-              class="w-full py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                class="w-full min-h-14 text-sm font-bold"
               :class="canSubmit
                 ? 'bg-black text-white hover:bg-gray-900 active:scale-[0.98]'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -678,7 +680,7 @@ const numpadKeys = ['1','2','3','4','5','6','7','8','9','.','0','DEL']
               <Loader2 v-if="paymentStore.submitting" :size="16" class="animate-spin" />
               <Lock v-else :size="16" />
               {{ paymentStore.submitting ? __('Processing...') : __('Complete Payment') }}
-            </button>
+              </Button>
             
           </div>
         </div>
@@ -700,18 +702,19 @@ const numpadKeys = ['1','2','3','4','5','6','7','8','9','.','0','DEL']
           {{ __('Outstanding') }}: {{ formatCurrency(newOutstanding) }}
         </p>
         <div class="flex gap-3">
-          <button
+          <Button
             @click="showPartialConfirm = false"
-            class="flex-1 py-3 bg-gray-50 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors"
+            variant="secondary"
+            class="flex-1 bg-gray-50 text-gray-700 font-bold hover:bg-gray-100"
           >
             {{ __('Cancel') }}
-          </button>
-          <button
+          </Button>
+          <Button
             @click="doSubmit"
-            class="flex-1 py-3 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 active:scale-[0.98] transition-all"
+            class="flex-1 bg-amber-500 text-white font-bold hover:bg-amber-600 active:scale-[0.98]"
           >
             {{ __('Confirm') }}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

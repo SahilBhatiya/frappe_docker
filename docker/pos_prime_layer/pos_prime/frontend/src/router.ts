@@ -6,9 +6,31 @@ import { createRouter, createWebHistory, createMemoryHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
-    component: () => import('./views/POS.vue'),
-    name: 'POS',
-    meta: { requiresShift: true },
+    component: () => import('./components/layout/AppLayout.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import('./views/POS.vue'),
+        name: 'POS',
+        meta: { requiresShift: true },
+      },
+      {
+        path: 'orders',
+        component: () => import('./views/Orders.vue'),
+        name: 'Orders',
+        meta: { requiresShift: true },
+      },
+      {
+        path: 'customers',
+        component: () => import('./views/CustomerDisplay.vue'),
+        name: 'Customers',
+      },
+      {
+        path: 'customers/:id',
+        component: () => import('./views/CustomerDisplay.vue'),
+        name: 'CustomerDetail',
+      },
+    ],
   },
   {
     path: '/open',
@@ -22,25 +44,9 @@ const routes = [
     meta: { requiresShift: true },
   },
   {
-    path: '/orders',
-    component: () => import('./views/Orders.vue'),
-    name: 'Orders',
-    meta: { requiresShift: true },
-  },
-  {
     path: '/display',
     component: () => import('./views/CustomerPoleDisplay.vue'),
     name: 'PoleDisplay',
-  },
-  {
-    path: '/customers',
-    component: () => import('./views/CustomerDisplay.vue'),
-    name: 'Customers',
-  },
-  {
-    path: '/customers/:id',
-    component: () => import('./views/CustomerDisplay.vue'),
-    name: 'CustomerDetail',
   },
   {
     path: '/kiosk',

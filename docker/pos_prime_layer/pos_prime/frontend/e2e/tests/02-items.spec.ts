@@ -21,6 +21,15 @@ test.describe('Items Grid & Search', () => {
     await expect(items.first()).toBeVisible({ timeout: 10_000 })
   })
 
+  test('should toggle between card and table views', async ({ posPage }) => {
+    await posPage.getByRole('button', { name: 'Table view' }).click()
+    await expect(posPage.getByRole('columnheader', { name: 'Item' })).toBeVisible()
+    await expect(posPage.getByRole('button', { name: 'Table view' })).toHaveAttribute('aria-pressed', 'true')
+
+    await posPage.getByRole('button', { name: 'Card view' }).click()
+    await expect(posPage.getByRole('button', { name: 'Card view' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('should search items by item code', async ({ posPage, testData }) => {
     await pos.searchItem(testData.items.stock)
     await posPage.waitForTimeout(1000)

@@ -119,7 +119,7 @@ async function confirmDelete() {
                 <div class="flex gap-1.5">
                   <button
                     @click="resumeOrder(draft.name)"
-                    class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm shadow-blue-600/20"
+                    class="flex-1 py-2 bg-gray-950 text-white rounded-lg text-xs font-bold hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-1.5 shadow-sm shadow-black/20"
                   >
                     <Play :size="12" />
                     {{ __('Resume') }}

@@ -2,6 +2,7 @@
 <!-- Licensed under GPLv3. See license.txt -->
 
 <script setup lang="ts">
+import Input from '@/components/ui/input/Input.vue'
 import { ref } from 'vue'
 import { call } from 'frappe-ui'
 import { useCartStore } from '@/stores/cart'
@@ -67,7 +68,7 @@ function removeCoupon() {
     <div v-else class="flex gap-1.5">
       <div class="relative flex-1">
         <Tag class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-300 dark:text-gray-600 pointer-events-none" :size="11" />
-        <input
+        <Input
           v-model="input"
           type="text"
           :placeholder="__('Coupon code...')"

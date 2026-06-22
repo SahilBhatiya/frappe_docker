@@ -342,7 +342,7 @@ function newOrder() {
             </button>
             <button
               @click="newOrder"
-              class="flex-1 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 active:scale-[0.98] shadow-lg shadow-blue-600/20 transition-all duration-150 flex items-center justify-center gap-2"
+              class="flex-1 py-2.5 bg-gray-950 text-white rounded-xl text-sm font-semibold hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white active:scale-[0.98] shadow-lg shadow-black/20 transition-all duration-150 flex items-center justify-center gap-2"
             >
               <Plus :size="16" />
               {{ __('New Order') }}

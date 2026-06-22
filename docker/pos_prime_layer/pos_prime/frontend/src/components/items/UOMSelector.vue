@@ -43,7 +43,7 @@ function selectUom(uom: string, factor: number) {
       const match = uoms.find(u => u.uom === uom)
       if (match) selectUom(match.uom, match.conversion_factor)
     }"
-    class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+    class="rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-gray-950 dark:focus:ring-gray-300"
   >
     <option v-for="u in uoms" :key="u.uom" :value="u.uom">
       {{ u.uom }}

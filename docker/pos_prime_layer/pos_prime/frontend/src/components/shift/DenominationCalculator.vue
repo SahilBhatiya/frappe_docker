@@ -6,6 +6,7 @@ import { ref, computed, watch } from 'vue'
 import { X } from 'lucide-vue-next'
 import { getDenominations, getSmallestNote } from '@/utils/denominations'
 import { useCurrency } from '@/composables/useCurrency'
+import Input from '@/components/ui/input/Input.vue'
 
 const props = defineProps<{
   modelValue: number
@@ -119,12 +120,12 @@ function onBackdropClick(e: MouseEvent) {
                   {{ formatDenom(row.value) }}
                 </span>
                 <span class="text-gray-400 dark:text-gray-500 text-sm">&times;</span>
-                <input
+                <Input
                   v-model.number="row.count"
                   type="number"
                   min="0"
                   step="1"
-                  class="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 tabular-nums"
+                  class="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 tabular-nums"
                   @focus="($event.target as HTMLInputElement).select()"
                 />
                 <span class="text-gray-400 dark:text-gray-500 text-sm">=</span>
@@ -152,12 +153,12 @@ function onBackdropClick(e: MouseEvent) {
                   {{ formatDenom(row.value) }}
                 </span>
                 <span class="text-gray-400 dark:text-gray-500 text-sm">&times;</span>
-                <input
+                <Input
                   v-model.number="row.count"
                   type="number"
                   min="0"
                   step="1"
-                  class="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 tabular-nums"
+                  class="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 tabular-nums"
                   @focus="($event.target as HTMLInputElement).select()"
                 />
                 <span class="text-gray-400 dark:text-gray-500 text-sm">=</span>
@@ -174,9 +175,9 @@ function onBackdropClick(e: MouseEvent) {
         <!-- Footer -->
         <div class="border-t border-gray-200 dark:border-gray-700 px-5 py-4 space-y-3">
           <!-- Total bar -->
-          <div class="flex items-center justify-between bg-blue-50 dark:bg-blue-900/30 rounded-lg px-4 py-3">
-            <span class="text-sm font-semibold text-blue-700 dark:text-blue-300">{{ __('TOTAL') }}</span>
-            <span class="text-lg font-bold text-blue-700 dark:text-blue-300 tabular-nums">
+          <div class="flex items-center justify-between bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3">
+            <span class="text-sm font-semibold text-gray-950 dark:text-gray-100">{{ __('TOTAL') }}</span>
+            <span class="text-lg font-bold text-gray-950 dark:text-gray-100 tabular-nums">
               {{ formatCurrency(grandTotal) }}
             </span>
           </div>
@@ -191,7 +192,7 @@ function onBackdropClick(e: MouseEvent) {
             </button>
             <button
               @click="apply"
-              class="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              class="flex-1 py-2 bg-gray-950 text-white rounded-lg text-sm font-medium hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white transition-colors"
             >
               {{ __('Apply') }}
             </button>

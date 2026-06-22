@@ -2,6 +2,7 @@
 <!-- Licensed under GPLv3. See license.txt -->
 
 <script setup lang="ts">
+import Input from '@/components/ui/input/Input.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useCustomerStore } from '@/stores/customer'
@@ -88,8 +89,8 @@ const hasAnyOption = computed(() => {
     || o.set_posting_time || o.payment_terms_template || o.tc_name)
 })
 
-const selectClass = "w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+const selectClass = "w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 dark:focus:ring-gray-300"
+const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 dark:focus:ring-gray-300"
 </script>
 
 <template>
@@ -100,7 +101,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
     >
       <span>
         {{ __('More Options') }}
-        <span v-if="hasAnyOption && !expanded" class="ml-1 text-blue-500 dark:text-blue-400">({{ __('configured') }})</span>
+        <span v-if="hasAnyOption && !expanded" class="ml-1 text-gray-700 dark:text-gray-300">({{ __('configured') }})</span>
       </span>
       <component :is="expanded ? ChevronUp : ChevronDown" :size="14" />
     </button>
@@ -174,7 +175,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
       <div class="grid grid-cols-2 gap-2 pt-2">
         <div>
           <label class="text-[10px] text-gray-500 dark:text-gray-400">{{ __('Customer PO #') }}</label>
-          <input
+          <Input
             :value="form.po_no || ''"
             @input="update('po_no', ($event.target as HTMLInputElement).value)"
             type="text"
@@ -184,7 +185,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
         </div>
         <div>
           <label class="text-[10px] text-gray-500 dark:text-gray-400">{{ __('PO Date') }}</label>
-          <input
+          <Input
             :value="form.po_date || ''"
             @input="update('po_date', ($event.target as HTMLInputElement).value)"
             type="date"
@@ -201,13 +202,13 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
             :checked="form.set_posting_time || false"
             @change="update('set_posting_time', ($event.target as HTMLInputElement).checked)"
             id="set-posting-time"
-            class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+            class="rounded border-gray-300 dark:border-gray-600 text-gray-950 dark:text-gray-100 focus:ring-gray-950 dark:focus:ring-gray-300"
           />
           <label for="set-posting-time" class="text-[10px] text-gray-500 dark:text-gray-400">{{ __('Override Posting Date/Time') }}</label>
         </div>
         <div v-if="form.set_posting_time" class="grid grid-cols-2 gap-2 mt-1.5">
           <div>
-            <input
+            <Input
               :value="form.posting_date || ''"
               @input="update('posting_date', ($event.target as HTMLInputElement).value)"
               type="date"
@@ -215,7 +216,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
             />
           </div>
           <div>
-            <input
+            <Input
               :value="form.posting_time || ''"
               @input="update('posting_time', ($event.target as HTMLInputElement).value)"
               type="time"
@@ -273,7 +274,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
           @input="update('remarks', ($event.target as HTMLTextAreaElement).value)"
           rows="2"
           :placeholder="__('Internal notes...')"
-          class="w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none placeholder-gray-400 dark:placeholder-gray-500"
+          class="w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 dark:focus:ring-gray-300 resize-none placeholder-gray-400 dark:placeholder-gray-500"
         />
       </div>
     </div>

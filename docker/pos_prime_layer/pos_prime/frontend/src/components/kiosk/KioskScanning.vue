@@ -2,6 +2,7 @@
 <!-- Licensed under GPLv3. See license.txt -->
 
 <script setup lang="ts">
+import Input from '@/components/ui/input/Input.vue'
 import { ref, nextTick, onMounted } from 'vue'
 import { useCartStore } from '@/stores/cart'
 import { useItemsStore } from '@/stores/items'
@@ -22,7 +23,7 @@ const itemsStore = useItemsStore()
 const lastScanned = ref<string | null>(null)
 const scanError = ref<string | null>(null)
 const manualBarcode = ref('')
-const manualInputRef = ref<HTMLInputElement | null>(null)
+const manualInputRef = ref<InstanceType<typeof Input> | null>(null)
 const manualLoading = ref(false)
 
 onMounted(() => {
@@ -251,7 +252,7 @@ defineExpose({ showScannedFeedback, showScanError })
 
       <!-- Always-visible manual barcode input -->
       <form class="mb-3 flex gap-3" @submit.prevent="submitManualBarcode">
-        <input
+        <Input
           ref="manualInputRef"
           v-model="manualBarcode"
           type="text"

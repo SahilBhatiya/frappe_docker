@@ -2,18 +2,19 @@
 <!-- Licensed under GPLv3. See license.txt -->
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useItemsStore } from '@/stores/items'
 import { useCartStore } from '@/stores/cart'
 import { useSettingsStore } from '@/stores/settings'
 import { useBarcodeScanner } from '@/composables/useBarcodeScanner'
 import ItemCard from './ItemCard.vue'
+import ItemTableRow from './ItemTableRow.vue'
 import ItemSearch from './ItemSearch.vue'
 import ItemGroupFilter from './ItemGroupFilter.vue'
 import BatchSerialSelector from './BatchSerialSelector.vue'
 import CameraScanner from '@/components/scanner/CameraScanner.vue'
-import { Package, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
+import { Grid2X2, List, Package, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
 import { useDeskMode } from '@/composables/useDeskMode'
 import type { Item } from '@/types'
 
@@ -26,6 +27,17 @@ const scrollContainer = ref<HTMLElement | null>(null)
 const showCameraScanner = ref(false)
 const columnCount = ref(4)
 const showCategories = ref(localStorage.getItem('pos_show_categories') !== 'false')
+type ViewMode = 'card' | 'table'
+const storedViewMode = localStorage.getItem('pos_item_view_mode')
+const viewMode = ref<ViewMode>(storedViewMode === 'table' ? 'table' : 'card')
+
+function setViewMode(mode: ViewMode) {
+  if (viewMode.value === mode) return
+  viewMode.value = mode
+  localStorage.setItem('pos_item_view_mode', mode)
+  scrollContainer.value?.scrollTo({ top: 0, behavior: 'smooth' })
+  nextTick(() => virtualizer.value.measure())
+}
 
 function toggleCategories() {
   showCategories.value = !showCategories.value
@@ -66,6 +78,7 @@ function updateColumnCount() {
 // Group filtered items into rows for virtual scrolling
 const rows = computed(() => {
   const items = itemsStore.filteredItems
+  if (viewMode.value === 'table') return items.map(item => [item])
   const cols = columnCount.value
   const result: Item[][] = []
   for (let i = 0; i < items.length; i += cols) {
@@ -78,7 +91,9 @@ const virtualizer = useVirtualizer(
   computed(() => ({
     count: rows.value.length,
     getScrollElement: () => scrollContainer.value,
-    estimateSize: () => settingsStore.hideImages ? 70 : (isDeskMode.value ? 185 : 200),
+    estimateSize: () => viewMode.value === 'table'
+      ? 64
+      : settingsStore.hideImages ? 70 : (isDeskMode.value ? 185 : 200),
     overscan: 5,
   }))
 )
@@ -101,10 +116,12 @@ watch(
 
 function onSearchChange(term: string) {
   itemsStore.setSearchTerm(term)
+  virtualizer.value.scrollToOffset(0)
 }
 
 function onGroupSelect(group: string) {
   itemsStore.setSelectedGroup(group)
+  virtualizer.value.scrollToOffset(0)
 }
 
 // Batch/Serial selector state
@@ -246,6 +263,39 @@ const headerLabel = computed(() => {
         @update:model-value="onSearchChange"
         @open-scanner="showCameraScanner = true"
       />
+
+      <div
+        class="flex shrink-0 items-center rounded-xl bg-gray-100 p-1 dark:bg-gray-800"
+        role="group"
+        :aria-label="__('Item view')"
+      >
+        <button
+          type="button"
+          class="flex size-8 items-center justify-center rounded-lg transition-all duration-200"
+          :class="viewMode === 'card'
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-gray-400 hover:bg-white hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200'"
+          :title="__('Card view')"
+          :aria-label="__('Card view')"
+          :aria-pressed="viewMode === 'card'"
+          @click="setViewMode('card')"
+        >
+          <Grid2X2 :size="16" />
+        </button>
+        <button
+          type="button"
+          class="flex size-8 items-center justify-center rounded-lg transition-all duration-200"
+          :class="viewMode === 'table'
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-gray-400 hover:bg-white hover:text-gray-700 dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-200'"
+          :title="__('Table view')"
+          :aria-label="__('Table view')"
+          :aria-pressed="viewMode === 'table'"
+          @click="setViewMode('table')"
+        >
+          <List :size="17" />
+        </button>
+      </div>
     </div>
 
     <!-- Mobile/tablet horizontal categories -->
@@ -272,6 +322,7 @@ const headerLabel = computed(() => {
       <div
         ref="scrollContainer"
         class="flex-1 overflow-y-auto"
+        style="container-type: inline-size; container-name: item-results;"
       >
         <div
           v-if="itemsStore.loading && itemsStore.allItems.length === 0"
@@ -288,9 +339,22 @@ const headerLabel = computed(() => {
           <p class="text-gray-500 dark:text-gray-400 text-sm">{{ __('No items found') }}</p>
         </div>
 
-        <!-- Virtual scrolling grid -->
         <div
-          v-else
+          v-if="viewMode === 'table' && itemsStore.filteredItems.length > 0"
+          role="row"
+          class="item-table-header sticky top-0 z-10 mx-2 grid gap-3 border-b border-gray-100 bg-white/95 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400 backdrop-blur-md dark:border-gray-800 dark:bg-gray-950/95"
+        >
+          <span role="columnheader">{{ __('Item') }}</span>
+          <span role="columnheader" class="item-table-header-group">{{ __('Group') }}</span>
+          <span role="columnheader" class="item-table-header-stock">{{ __('Stock') }}</span>
+          <span role="columnheader" class="text-right">{{ __('Price') }}</span>
+          <span aria-hidden="true"></span>
+        </div>
+
+        <!-- Both layouts stay virtualized so large catalogs and live search remain fluid. -->
+        <div
+          v-if="itemsStore.filteredItems.length > 0"
+          :role="viewMode === 'table' ? 'rowgroup' : undefined"
           :style="{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }"
         >
           <div
@@ -304,18 +368,28 @@ const headerLabel = computed(() => {
               left: 0,
               width: '100%',
               transform: `translateY(${virtualRow.start}px)`,
+              paddingLeft: 'var(--padding-sm, 8px)',
+              paddingRight: 'var(--padding-sm, 8px)',
             }"
-            style="padding-left: var(--padding-sm, 8px); padding-right: var(--padding-sm, 8px);"
           >
             <div
-              class="grid pb-2"
+              class="grid animate-in fade-in-0 slide-in-from-bottom-1 duration-200"
+              :class="viewMode === 'table' ? 'pb-1.5' : 'pb-2'"
               style="gap: var(--margin-sm, 8px);"
-              :style="{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }"
+              :style="viewMode === 'card'
+                ? { gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }
+                : undefined"
             >
               <ItemCard
+                v-if="viewMode === 'card'"
                 v-for="item in rows[virtualRow.index]"
                 :key="item.item_code"
                 :item="item"
+                @select="onItemSelect"
+              />
+              <ItemTableRow
+                v-else
+                :item="rows[virtualRow.index][0]"
                 @select="onItemSelect"
               />
             </div>
@@ -343,3 +417,30 @@ const headerLabel = computed(() => {
     />
   </div>
 </template>
+
+<style scoped>
+.item-table-header {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 4.5rem 6.5rem 2rem;
+}
+
+@container item-results (max-width: 620px) {
+  .item-table-header {
+    grid-template-columns: minmax(0, 1fr) 4.5rem 6.5rem 2rem;
+  }
+
+  .item-table-header-group {
+    display: none;
+  }
+}
+
+@container item-results (max-width: 410px) {
+  .item-table-header {
+    grid-template-columns: minmax(0, 1fr) 6rem;
+  }
+
+  .item-table-header-stock,
+  .item-table-header > span:last-child {
+    display: none;
+  }
+}
+</style>

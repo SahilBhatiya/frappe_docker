@@ -55,7 +55,7 @@ function press(key: string) {
       <span class="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ label || 'Quantity' }}</span>
       <button
         @click="emit('close')"
-        class="flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors px-2 py-0.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/30"
+        class="flex items-center gap-1 text-[10px] font-semibold text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors px-2 py-0.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
       >
         <Check :size="12" />
         Done

@@ -49,7 +49,7 @@ function statusLabel(order: OrderSummary) {
       class="w-full text-left bg-white dark:bg-gray-900 border rounded-lg p-3 transition-colors"
       :class="
         selectedName === order.name
-          ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
+          ? 'border-gray-950 dark:border-gray-300 bg-gray-100 dark:bg-gray-800'
           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
       "
     >
