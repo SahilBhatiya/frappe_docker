@@ -356,11 +356,11 @@ const emit = defineEmits<{
 				<Button
 					@click="openPayment"
 					:disabled="cartStore.items.length === 0 || !customerStore.customer"
-					class="checkout-btn flex-1 text-sm font-bold duration-200 text-white disabled:cursor-not-allowed"
+					class="checkout-btn flex-1 text-sm font-bold duration-200 disabled:cursor-not-allowed disabled:opacity-100"
 					:class="
 						cartStore.items.length > 0 && customerStore.customer
-							? 'bg-gray-950 hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white'
-							: 'bg-gray-400 dark:bg-gray-700 opacity-70'
+							? 'bg-gray-950 text-white hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white'
+							: 'bg-gray-200 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
 					"
 				>
 					<CreditCard :size="16" />

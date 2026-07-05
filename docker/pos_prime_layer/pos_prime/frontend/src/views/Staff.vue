@@ -4,6 +4,13 @@
 <script setup lang="ts">
 import Button from "@/components/ui/button/Button.vue";
 import Input from "@/components/ui/input/Input.vue";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/components/ui/dialog";
 import { useStaffStore } from "@/stores/staff";
 import { ArrowLeft, Plus, Search, UserPlus, Users, Wallet, X } from "lucide-vue-next";
 import { computed, onMounted, ref, watch } from "vue";
@@ -315,93 +322,76 @@ watch(
 		</div>
 
 		<!-- Add Employee dialog -->
-		<Teleport to="body">
-			<div v-if="showAdd" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-				<div
-					class="absolute inset-0 bg-black/40 backdrop-blur-sm"
-					@click="showAdd = false"
-				/>
-				<div
-					class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-solid border-gray-100 dark:border-gray-700 p-5"
-				>
-					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
-							{{ __("Add Employee") }}
-						</h2>
-						<button @click="showAdd = false" class="text-gray-400 hover:text-gray-600">
-							<X :size="20" />
-						</button>
-					</div>
+		<Dialog :open="showAdd" @update:open="(v) => { if (!v) showAdd = false }">
+			<DialogContent class="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>{{ __("Add Employee") }}</DialogTitle>
+				</DialogHeader>
 
-					<div class="space-y-3">
+				<div class="space-y-3">
+					<div>
+						<label class="block text-xs font-semibold text-gray-500 mb-1"
+							>{{ __("Full Name") }} *</label
+						>
+						<input
+							v-model="form.employee_name"
+							type="text"
+							data-slot="input"
+							class="w-full text-sm transition-all"
+							:placeholder="__('e.g. Ramesh Patel')"
+						/>
+					</div>
+					<div class="grid grid-cols-2 gap-3">
 						<div>
-							<label class="block text-xs font-semibold text-gray-500 mb-1"
-								>{{ __("Full Name") }} *</label
-							>
+							<label class="block text-xs font-semibold text-gray-500 mb-1">{{
+								__("Mobile")
+							}}</label>
 							<input
-								v-model="form.employee_name"
-								type="text"
-								class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 dark:focus:ring-gray-300"
-								:placeholder="__('e.g. Ramesh Patel')"
+								v-model="form.mobile"
+								type="tel"
+								data-slot="input"
+								class="w-full text-sm transition-all"
 							/>
-						</div>
-						<div class="grid grid-cols-2 gap-3">
-							<div>
-								<label class="block text-xs font-semibold text-gray-500 mb-1">{{
-									__("Mobile")
-								}}</label>
-								<input
-									v-model="form.mobile"
-									type="tel"
-									class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 dark:focus:ring-gray-300"
-								/>
-							</div>
-							<div>
-								<label class="block text-xs font-semibold text-gray-500 mb-1">{{
-									__("Designation")
-								}}</label>
-								<input
-									v-model="form.designation"
-									type="text"
-									class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 dark:focus:ring-gray-300"
-									:placeholder="__('e.g. Mechanic')"
-								/>
-							</div>
 						</div>
 						<div>
 							<label class="block text-xs font-semibold text-gray-500 mb-1">{{
-								__("Monthly Salary (₹)")
+								__("Designation")
 							}}</label>
 							<input
-								v-model.number="form.monthly_salary"
-								type="number"
-								min="0"
-								class="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 dark:focus:ring-gray-300"
+								v-model="form.designation"
+								type="text"
+								data-slot="input"
+								class="w-full text-sm transition-all"
+								:placeholder="__('e.g. Mechanic')"
 							/>
 						</div>
-						<p v-if="addError" class="text-sm text-red-600 dark:text-red-400">
-							{{ addError }}
-						</p>
 					</div>
-
-					<div class="flex gap-2 mt-5">
-						<Button
-							variant="outline"
-							@click="showAdd = false"
-							class="flex-1"
-						>
-							{{ __("Cancel") }}
-						</Button>
-						<Button
-							@click="submitAdd"
-							:disabled="store.saving"
-							class="flex-1"
-						>
-							{{ store.saving ? __("Saving...") : __("Add") }}
-						</Button>
+					<div>
+						<label class="block text-xs font-semibold text-gray-500 mb-1">{{
+							__("Monthly Salary (₹)")
+						}}</label>
+						<input
+							v-model.number="form.monthly_salary"
+							type="number"
+							min="0"
+							data-slot="input"
+							class="w-full text-sm transition-all"
+						/>
 					</div>
+					<p v-if="addError" class="text-sm text-red-600 dark:text-red-400">
+						{{ addError }}
+					</p>
 				</div>
-			</div>
-		</Teleport>
+
+				<DialogFooter class="flex-row gap-2">
+					<Button variant="outline" @click="showAdd = false" class="flex-1">
+						{{ __("Cancel") }}
+					</Button>
+					<Button @click="submitAdd" :disabled="store.saving" class="flex-1">
+						{{ store.saving ? __("Saving...") : __("Add") }}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	</div>
 </template>

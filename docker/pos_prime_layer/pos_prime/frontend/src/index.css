@@ -397,12 +397,20 @@ html:has(#app) [data-theme="dark"] body {
 	scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
-/* Focus visible outline */
+/* Focus visible outline — single hugging ring (no offset) so it never reads as
+   a detached second border. Keyboard-only via :focus-visible. */
 #app *:focus-visible,
 #pos-prime-app *:focus-visible {
-	outline: 2px solid rgb(9 9 11);
-	outline-offset: 2px;
+	outline: 2px solid var(--ring);
+	outline-offset: 0;
 	border-radius: 4px;
+}
+/* Dialogs are teleported to <body> and auto-focused on open, so the #app-scoped
+   reset above never reaches them and the browser's default (blue) focus ring
+   leaks around the modal. Suppress it so every dialog shows one clean border. */
+[data-slot="dialog-content"]:focus,
+[data-slot="dialog-content"]:focus-visible {
+	outline: none;
 }
 
 /* Selection color */

@@ -7,6 +7,13 @@ import { ArrowLeft, Plus, Pencil, X, Wallet, CalendarCheck, Receipt } from "luci
 import { useStaffStore } from "@/stores/staff";
 import Button from "@/components/ui/button/Button.vue";
 import DeleteConfirmDialog from "@/components/ui/DeleteConfirmDialog.vue";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogFooter,
+} from "@/components/ui/dialog";
 
 const props = defineProps<{ employeeId?: string }>();
 const route = useRoute();
@@ -252,84 +259,76 @@ watch(employee, (newEmp) => {
 		</div>
 
 		<!-- Edit dialog -->
-		<Teleport to="body">
-			<div v-if="showEdit" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-				<div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showEdit = false" />
-				<div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-solid border-gray-100 dark:border-gray-700 p-5">
-					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ __("Edit Employee") }}</h2>
-						<button @click="showEdit = false" class="text-gray-400 hover:text-gray-600"><X :size="20" /></button>
+		<Dialog :open="showEdit" @update:open="(v) => { if (!v) showEdit = false }">
+			<DialogContent class="sm:max-w-md">
+				<DialogHeader>
+					<DialogTitle>{{ __("Edit Employee") }}</DialogTitle>
+				</DialogHeader>
+				<div class="space-y-3">
+					<div>
+						<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Full Name") }}</label>
+						<input v-model="editForm.employee_name" type="text" data-slot="input" class="w-full text-sm transition-all" />
 					</div>
-					<div class="space-y-3">
+					<div class="grid grid-cols-2 gap-3">
 						<div>
-							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Full Name") }}</label>
-							<input v-model="editForm.employee_name" type="text" data-slot="input" class="w-full text-sm transition-all" />
+							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Mobile") }}</label>
+							<input v-model="editForm.mobile" type="tel" data-slot="input" class="w-full text-sm transition-all" />
 						</div>
-						<div class="grid grid-cols-2 gap-3">
-							<div>
-								<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Mobile") }}</label>
-								<input v-model="editForm.mobile" type="tel" data-slot="input" class="w-full text-sm transition-all" />
-							</div>
-							<div>
-								<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Designation") }}</label>
-								<input v-model="editForm.designation" type="text" data-slot="input" class="w-full text-sm transition-all" />
-							</div>
-						</div>
-						<div class="grid grid-cols-2 gap-3">
-							<div>
-								<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Monthly Salary (₹)") }}</label>
-								<input v-model.number="editForm.monthly_salary" type="number" min="0" data-slot="input" class="w-full text-sm transition-all" />
-							</div>
-							<div>
-								<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Status") }}</label>
-								<select v-model="editForm.status" data-slot="select" class="w-full text-sm transition-all appearance-none">
-									<option>Active</option>
-									<option>Inactive</option>
-									<option>Left</option>
-									<option>Suspended</option>
-								</select>
-							</div>
+						<div>
+							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Designation") }}</label>
+							<input v-model="editForm.designation" type="text" data-slot="input" class="w-full text-sm transition-all" />
 						</div>
 					</div>
-					<div class="flex gap-2 mt-5">
-						<Button variant="outline" @click="showEdit = false" class="flex-1">{{ __("Cancel") }}</Button>
-						<Button @click="saveEdit" :disabled="store.saving" class="flex-1">{{ store.saving ? __("Saving...") : __("Save") }}</Button>
+					<div class="grid grid-cols-2 gap-3">
+						<div>
+							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Monthly Salary (₹)") }}</label>
+							<input v-model.number="editForm.monthly_salary" type="number" min="0" data-slot="input" class="w-full text-sm transition-all" />
+						</div>
+						<div>
+							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Status") }}</label>
+							<select v-model="editForm.status" data-slot="select" class="w-full text-sm transition-all appearance-none">
+								<option>Active</option>
+								<option>Inactive</option>
+								<option>Left</option>
+								<option>Suspended</option>
+							</select>
+						</div>
 					</div>
 				</div>
-			</div>
-		</Teleport>
+				<DialogFooter class="flex-row gap-2">
+					<Button variant="outline" @click="showEdit = false" class="flex-1">{{ __("Cancel") }}</Button>
+					<Button @click="saveEdit" :disabled="store.saving" class="flex-1">{{ store.saving ? __("Saving...") : __("Save") }}</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 
 		<!-- Add advance dialog -->
-		<Teleport to="body">
-			<div v-if="showAdv" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-				<div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showAdv = false" />
-				<div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-solid border-gray-100 dark:border-gray-700 p-5">
-					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ __("Add Advance") }}</h2>
-						<button @click="showAdv = false" class="text-gray-400 hover:text-gray-600"><X :size="20" /></button>
+		<Dialog :open="showAdv" @update:open="(v) => { if (!v) showAdv = false }">
+			<DialogContent class="sm:max-w-sm">
+				<DialogHeader>
+					<DialogTitle>{{ __("Add Advance") }}</DialogTitle>
+				</DialogHeader>
+				<div class="space-y-3">
+					<div>
+						<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Amount (₹)") }} *</label>
+						<input v-model.number="advForm.amount" type="number" min="0" data-slot="input" class="w-full text-sm transition-all" />
 					</div>
-					<div class="space-y-3">
-						<div>
-							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Amount (₹)") }} *</label>
-							<input v-model.number="advForm.amount" type="number" min="0" data-slot="input" class="w-full text-sm transition-all" />
-						</div>
-						<div>
-							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Date") }}</label>
-							<input v-model="advForm.date" type="date" data-slot="input" class="w-full text-sm transition-all" />
-						</div>
-						<div>
-							<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Notes") }}</label>
-							<input v-model="advForm.notes" type="text" data-slot="input" class="w-full text-sm transition-all" />
-						</div>
-						<p v-if="advError" class="text-sm text-red-600 dark:text-red-400">{{ advError }}</p>
+					<div>
+						<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Date") }}</label>
+						<input v-model="advForm.date" type="date" data-slot="input" class="w-full text-sm transition-all" />
 					</div>
-					<div class="flex gap-2 mt-5">
-						<Button variant="outline" @click="showAdv = false" class="flex-1">{{ __("Cancel") }}</Button>
-						<Button @click="submitAdv" class="flex-1">{{ __("Add Advance") }}</Button>
+					<div>
+						<label class="block text-xs font-semibold text-gray-500 mb-1">{{ __("Notes") }}</label>
+						<input v-model="advForm.notes" type="text" data-slot="input" class="w-full text-sm transition-all" />
 					</div>
+					<p v-if="advError" class="text-sm text-red-600 dark:text-red-400">{{ advError }}</p>
 				</div>
-			</div>
-		</Teleport>
+				<DialogFooter class="flex-row gap-2">
+					<Button variant="outline" @click="showAdv = false" class="flex-1">{{ __("Cancel") }}</Button>
+					<Button @click="submitAdv" class="flex-1">{{ __("Add Advance") }}</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 
 		<DeleteConfirmDialog
 			:show="!!cancellingAdvance"
