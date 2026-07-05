@@ -39,34 +39,4 @@ defineExpose({
   >
 </template>
 
-<style scoped>
-[data-slot="input"] {
-  height: 40px !important;
-  border-radius: 0.75rem !important;
-  border-color: transparent !important;
-  background-color: #f3f4f6 !important;
-  padding-top: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
-}
 
-[data-slot="input"]:focus,
-[data-slot="input"]:focus-visible {
-  border-color: transparent !important;
-  background-color: #f3f4f6 !important;
-  box-shadow: 0 0 0 2px rgb(17 24 39 / 0.1) !important;
-}
-
-[data-slot="input"][aria-invalid="true"] {
-  box-shadow: 0 0 0 2px rgb(239 68 68 / 0.25) !important;
-}
-
-:global([data-theme="dark"]) [data-slot="input"] {
-  background-color: #1f2937 !important;
-}
-
-:global([data-theme="dark"]) [data-slot="input"]:focus,
-:global([data-theme="dark"]) [data-slot="input"]:focus-visible {
-  background-color: #1f2937 !important;
-  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.14) !important;
-}
-</style>

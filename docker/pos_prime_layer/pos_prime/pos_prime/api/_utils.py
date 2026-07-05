@@ -331,6 +331,12 @@ def format_invoice_response(invoice):
         "customer_name": invoice.customer_name,
         "tax_id": invoice.get("tax_id"),
 
+        # GST (India) — None on non-India sites
+        "company_gstin": invoice.get("company_gstin"),
+        "billing_address_gstin": invoice.get("billing_address_gstin"),
+        "place_of_supply": invoice.get("place_of_supply"),
+        "gst_category": invoice.get("gst_category"),
+
         # Address & contact
         "customer_address": invoice.get("customer_address"),
         "address_display": invoice.get("address_display"),
@@ -497,6 +503,8 @@ def format_invoice_item(item):
         "rate_with_margin": item.get("rate_with_margin"),
         "item_tax_template": item.get("item_tax_template"),
         "item_tax_rate": item.get("item_tax_rate"),
+        "gst_hsn_code": item.get("gst_hsn_code"),
+        "gst_treatment": item.get("gst_treatment"),
         "is_free_item": item.get("is_free_item"),
         "serial_no": item.serial_no,
         "batch_no": item.batch_no,

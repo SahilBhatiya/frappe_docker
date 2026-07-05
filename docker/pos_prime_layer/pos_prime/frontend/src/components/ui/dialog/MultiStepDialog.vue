@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { Check, X } from "lucide-vue-next";
+import { Check } from "lucide-vue-next";
+import {
+	Dialog,
+	DialogPortal,
+	DialogOverlay,
+} from "@/components/ui/dialog";
 
 interface Step {
 	id: string;
@@ -34,25 +39,18 @@ function nextOrSubmit() {
 </script>
 
 <template>
-	<Teleport to="body">
-		<Transition name="modal" appear>
+	<Dialog :open="show" @update:open="(val) => { if (!val) emit('close') }">
+		<DialogPortal>
+			<DialogOverlay />
+
+			<!-- Centered full-screen container -->
 			<div
-				v-if="show"
-				class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
-				role="dialog"
-				aria-modal="true"
+				class="dialog-container fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
 				@keydown.escape="emit('close')"
 			>
-				<!-- Backdrop -->
+				<!-- Dialog Container -->
 				<div
-					class="absolute inset-0 bg-black/30 backdrop-blur-sm transition-all duration-400 ease-in-out"
-					@click="emit('close')"
-				/>
-
-				<!-- Dialog Container -->`
-				<!-- box-shadow: rgba(17, 12, 46, 0.15) 0px 48px 100px 0px; -->
-				<div
-					class="dialog-container relative w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-[0px_48px_100px_0px_rgba(17, 12, 46, 0.15)] border border-3 border-zinc-200 overflow-hidden flex flex-col md:flex-row"
+					class="relative w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-[0px_48px_100px_0px_rgba(17,12,46,0.15)] border border-zinc-200 overflow-hidden flex flex-col md:flex-row"
 				>
 					<!-- Left Sidebar (Steps Progress) -->
 					<div
@@ -143,13 +141,13 @@ function nextOrSubmit() {
 
 					<!-- Right Content Area -->
 					<div
-						class="flex-1 bg-white flex flex-col bg-white dark:bg-gray-900 overflow-hidden relative"
+						class="flex-1 bg-white flex flex-col dark:bg-gray-900 overflow-hidden relative"
 					>
 						<button
 							@click="emit('close')"
 							class="absolute top-4 right-4 z-10 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-0 border-none outline-none"
 						>
-							<X :size="18" />
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 						</button>
 
 						<!-- Main Content Scroll Area -->
@@ -162,7 +160,7 @@ function nextOrSubmit() {
 									<div
 										class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0"
 									>
-										<X :size="16" class="text-red-600 dark:text-red-400" />
+										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 dark:text-red-400"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
 									</div>
 									{{ error }}
 								</div>
@@ -185,7 +183,7 @@ function nextOrSubmit() {
 								<button
 									v-if="currentStepIndex > 0"
 									@click="emit('back')"
-									class="px-5 py-2.5 rounded-full text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-0 border-none outline-none"
+									class="px-4 py-3 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-0 border-none outline-none"
 								>
 									&larr; Go back
 								</button>
@@ -194,7 +192,7 @@ function nextOrSubmit() {
 								<button
 									@click="nextOrSubmit"
 									:disabled="loading"
-									class="px-6 py-4 shadow-xl rounded-full text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto focus:outline-none focus:ring-0 border-none outline-none"
+									class="px-4 py-3 shadow-xl rounded-xl text-sm font-semibold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ml-auto focus:outline-none focus:ring-0 border-none outline-none"
 								>
 									<svg
 										v-if="loading"
@@ -230,31 +228,11 @@ function nextOrSubmit() {
 					</div>
 				</div>
 			</div>
-		</Transition>
-	</Teleport>
+		</DialogPortal>
+	</Dialog>
 </template>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
-	transition: opacity 0.4s ease;
-}
-
-.modal-enter-active :deep(.dialog-container),
-.modal-leave-active :deep(.dialog-container) {
-	transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.modal-enter-from,
-.modal-leave-to {
-	opacity: 0;
-}
-
-.modal-enter-from :deep(.dialog-container),
-.modal-leave-to :deep(.dialog-container) {
-	transform: scale(0.95) translateY(15px);
-}
-
 .step-enter-active,
 .step-leave-active {
 	transition: all 0.25s ease-out;

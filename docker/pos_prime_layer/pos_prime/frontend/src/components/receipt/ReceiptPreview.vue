@@ -154,6 +154,7 @@ function newOrder() {
               <span v-if="invoice.company_address_display" v-html="sanitizeHtml(invoice.company_address_display)" />
               <span v-else>{{ settingsStore.posProfile?.company_address }}</span>
             </div>
+            <div v-if="invoice.company_gstin" class="text-[10px] text-gray-500 dark:text-gray-400 mb-1 font-medium">GSTIN: {{ invoice.company_gstin }}</div>
             <div class="text-[10px] text-gray-400 dark:text-gray-500 mb-4">
               {{ invoice.name }} &middot; {{ invoice.posting_date }}
               <span v-if="invoice.po_no"> &middot; PO: {{ invoice.po_no }}</span>
@@ -170,7 +171,8 @@ function newOrder() {
               <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">
                 {{ invoice.customer_name || invoice.customer }}
               </div>
-              <div v-if="invoice.tax_id" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">Tax ID: {{ invoice.tax_id }}</div>
+              <div v-if="invoice.billing_address_gstin || invoice.tax_id" class="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">GSTIN: {{ invoice.billing_address_gstin || invoice.tax_id }}</div>
+              <div v-if="invoice.place_of_supply" class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ __('Place of Supply') }}: {{ invoice.place_of_supply }}</div>
               <div v-if="invoice.address_display" class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 leading-tight" v-html="sanitizeHtml(invoice.address_display)" />
               <div v-if="invoice.contact_mobile || invoice.contact_email" class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                 {{ invoice.contact_mobile }}{{ invoice.contact_mobile && invoice.contact_email ? ' · ' : '' }}{{ invoice.contact_email }}
@@ -197,6 +199,7 @@ function newOrder() {
                     <span v-if="item.batch_no">Batch: {{ item.batch_no }}</span>
                     <span v-if="item.serial_no">{{ item.batch_no ? ' · ' : '' }}SN: {{ item.serial_no }}</span>
                   </div>
+                  <div v-if="item.gst_hsn_code" class="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">HSN: {{ item.gst_hsn_code }}</div>
                 </div>
                 <span class="text-gray-800 dark:text-gray-200 font-semibold shrink-0">
                   {{ formatCurrency(item.amount) }}

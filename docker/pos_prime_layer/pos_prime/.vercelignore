@@ -1,0 +1,16 @@
+node_modules
+frontend/node_modules
+frontend/test-results
+frontend/playwright-report
+frontend/blob-report
+frontend/playwright/.cache
+frontend/playwright/.auth
+frontend/vite.diagnostic.config.js.timestamp-*.mjs
+pos_prime/public/frontend
+screenshots
+__pycache__
+*.pyc
+.env
+.env.*
+frontend/.env
+frontend/.env.*

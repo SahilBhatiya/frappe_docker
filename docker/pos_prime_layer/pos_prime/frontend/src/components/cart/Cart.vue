@@ -12,11 +12,13 @@ import { useCartStore } from "@/stores/cart";
 import { useCustomerStore } from "@/stores/customer";
 import { usePaymentStore } from "@/stores/payment";
 import { useSettingsStore } from "@/stores/settings";
-import { Check, CreditCard, Pause, ShoppingCart } from "lucide-vue-next";
-import { computed, nextTick, ref, watch } from "vue";
+import { useEwaybillStore } from "@/stores/ewaybill";
+import { Check, CreditCard, Pause, ShoppingCart, Truck } from "lucide-vue-next";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import CartItemComp from "./CartItem.vue";
 import CartSummary from "./CartSummary.vue";
 import CouponCodeInput from "./CouponCodeInput.vue";
+import EWayBillDialog from "./EWayBillDialog.vue";
 import InvoiceDiscount from "./InvoiceDiscount.vue";
 import InvoiceOptions from "./InvoiceOptions.vue";
 import NumPad from "./NumPad.vue";
@@ -27,7 +29,22 @@ const cartStore = useCartStore();
 const customerStore = useCustomerStore();
 const paymentStore = usePaymentStore();
 const settingsStore = useSettingsStore();
+const ewbStore = useEwaybillStore();
 const { formatCurrency } = useCurrency();
+
+const showEwaybillDialog = ref(false);
+
+onMounted(() => ewbStore.loadOptions());
+
+// e-Way Bill is offered only for GST-registered (B2B) customers when the cart
+// value meets the threshold — those are wholesale/transport sales, booked as a
+// Sales Invoice (not a cash POS Invoice).
+const ewaybillApplicable = computed(
+	() =>
+		cartStore.items.length > 0 &&
+		!!customerStore.customer?.gstin &&
+		cartStore.roundedTotal >= ewbStore.threshold,
+);
 
 const showNumPad = ref(false);
 const numPadMode = ref<"qty" | "discount" | "discountAmt" | "rate">("qty");
@@ -182,7 +199,7 @@ const emit = defineEmits<{
 			<TransitionGroup v-else name="cart-item" tag="div">
 				<CartItemComp
 					v-for="(item, index) in cartStore.items"
-					:key="`${item.item_code}-${item.batch_no || ''}-${index}`"
+					:key="item.uid"
 					:item="item"
 					:index="index"
 					:selected="cartStore.selectedItemIndex === index"
@@ -315,6 +332,17 @@ const emit = defineEmits<{
 				<CartSummary />
 			</div>
 
+			<!-- e-Way Bill (B2B / high-value sales) -->
+			<div v-if="ewaybillApplicable" class="px-3 pb-1">
+				<button
+					@click="showEwaybillDialog = true"
+					class="w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-solid border-indigo-200 dark:border-indigo-800 transition-colors"
+				>
+					<Truck :size="15" />
+					{{ __("Bill with e-Way Bill") }}
+				</button>
+			</div>
+
 			<!-- Action Buttons -->
 			<div class="px-3 pb-2 flex gap-2">
 				<Button
@@ -341,6 +369,12 @@ const emit = defineEmits<{
 				</Button>
 			</div>
 		</div>
+
+		<EWayBillDialog
+			:show="showEwaybillDialog"
+			@close="showEwaybillDialog = false"
+			@done="showEwaybillDialog = false"
+		/>
 	</div>
 </template>
 

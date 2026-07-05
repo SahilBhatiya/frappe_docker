@@ -550,4 +550,80 @@ html:has(#app) [data-theme="dark"] body {
 	body {
 		@apply bg-background text-foreground;
 	}
+	button, 
+	[type='button'], 
+	[type='reset'], 
+	[type='submit'],
+	input,
+	select,
+	textarea {
+		@apply shadow-none;
+	}
+}
+
+/* Hard reset for global button styles bleeding into the UI (e.g. Frappe Desk) */
+button,
+[type='button'],
+[type='reset'],
+[type='submit'] {
+	background-color: transparent !important;
+	border-width: 0 !important;
+	box-shadow: none !important;
+}
+
+/* Global Form Fields (Filled Style) */
+[data-slot="input"],
+[data-slot="select"],
+[data-slot="textarea"] {
+	border-radius: 0.75rem !important;
+	border-color: transparent !important;
+	background-color: #f3f4f6 !important;
+	padding-left: 0.75rem !important;
+	padding-right: 0.75rem !important;
+	padding-top: 0.5rem !important;
+	padding-bottom: 0.5rem !important;
+	outline: none !important;
+}
+
+[data-slot="input"],
+[data-slot="select"] {
+	height: 40px !important;
+}
+
+[data-slot="textarea"] {
+	height: auto !important;
+	min-height: 80px !important;
+}
+
+[data-slot="input"]:focus,
+[data-slot="input"]:focus-visible,
+[data-slot="select"]:focus,
+[data-slot="select"]:focus-visible,
+[data-slot="textarea"]:focus,
+[data-slot="textarea"]:focus-visible {
+	border-color: transparent !important;
+	background-color: #f3f4f6 !important;
+	box-shadow: 0 0 0 2px rgb(17 24 39 / 0.1) !important;
+}
+
+[data-slot="input"][aria-invalid="true"],
+[data-slot="select"][aria-invalid="true"],
+[data-slot="textarea"][aria-invalid="true"] {
+	box-shadow: 0 0 0 2px rgb(239 68 68 / 0.25) !important;
+}
+
+[data-theme="dark"] [data-slot="input"],
+[data-theme="dark"] [data-slot="select"],
+[data-theme="dark"] [data-slot="textarea"] {
+	background-color: #1f2937 !important;
+}
+
+[data-theme="dark"] [data-slot="input"]:focus,
+[data-theme="dark"] [data-slot="input"]:focus-visible,
+[data-theme="dark"] [data-slot="select"]:focus,
+[data-theme="dark"] [data-slot="select"]:focus-visible,
+[data-theme="dark"] [data-slot="textarea"]:focus,
+[data-theme="dark"] [data-slot="textarea"]:focus-visible {
+	background-color: #1f2937 !important;
+	box-shadow: 0 0 0 2px rgb(255 255 255 / 0.14) !important;
 }

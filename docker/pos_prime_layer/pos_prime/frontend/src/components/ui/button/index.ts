@@ -16,14 +16,14 @@ export const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
-        "default": 'min-h-10 gap-1.5 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3',
+        "default": 'py-3 px-4 gap-2 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3',
         "xs": 'h-6 gap-1 px-2 text-xs in-data-[slot=button-group]:rounded-xl has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=size-])]:size-3',
-        "sm": 'h-7 gap-1 px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-xl has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=size-])]:size-3.5',
-        "lg": 'min-h-10 gap-2 px-5 has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4',
+        "sm": 'py-2 px-3 gap-1.5 text-[0.8rem] in-data-[slot=button-group]:rounded-xl has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*=size-])]:size-3.5',
+        "lg": 'py-4 px-5 gap-2 has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4',
         "icon": 'size-10',
         "icon-xs": 'size-6 in-data-[slot=button-group]:rounded-xl [&_svg:not([class*=size-])]:size-3',
         "icon-sm": 'size-7 in-data-[slot=button-group]:rounded-xl',
-        "icon-lg": 'size-10',
+        "icon-lg": 'size-11',
       },
     },
     defaultVariants: {

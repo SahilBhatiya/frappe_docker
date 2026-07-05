@@ -4,8 +4,14 @@
 <script setup lang="ts">
 import Input from "@/components/ui/input/Input.vue";
 import { toast } from "@/composables/useToast";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { call } from "frappe-ui";
-import { Loader2, Mail, X } from "lucide-vue-next";
+import { Loader2, Mail } from "lucide-vue-next";
 import { ref } from "vue";
 
 const props = defineProps<{
@@ -44,74 +50,48 @@ async function sendEmail() {
 </script>
 
 <template>
-	<Teleport to="body">
-		<div
-			class="fixed inset-0 z-[60] flex items-center justify-center p-4"
-			role="dialog"
-			aria-modal="true"
-			:aria-label="__('Email Receipt')"
-			@keydown.escape="emit('close')"
-		>
-			<div
-				class="absolute inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-md"
-				@click="emit('close')"
-			/>
-			<div
-				class="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl dark:shadow-black/30 w-full max-w-sm"
-			>
-				<div
-					class="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between"
+	<Dialog :open="true" @update:open="(val) => { if (!val) emit('close') }">
+		<DialogContent class="sm:max-w-sm">
+			<DialogHeader>
+				<DialogTitle>{{ __("Email Receipt") }}</DialogTitle>
+			</DialogHeader>
+
+			<div class="space-y-3">
+				<div>
+					<label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+						{{ __("Recipient Email") }}
+					</label>
+					<Input
+						v-model="email"
+						type="email"
+						placeholder="customer@example.com"
+						class="w-full"
+						@keydown.enter="sendEmail"
+					/>
+				</div>
+
+				<div>
+					<label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+						{{ __("Message (optional)") }}
+					</label>
+					<textarea
+						v-model="message"
+						rows="2"
+						:placeholder="__('Add a note...')"
+						class="w-full rounded-lg border border-input bg-background text-foreground px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+					/>
+				</div>
+
+				<button
+					@click="sendEmail"
+					:disabled="sending || !email.trim()"
+					class="w-full py-2.5 bg-gray-950 text-white rounded-lg text-sm font-semibold hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
 				>
-					<h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
-						{{ __("Email Receipt") }}
-					</h3>
-					<button
-						@click="emit('close')"
-						class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-					>
-						<X :size="16" />
-					</button>
-				</div>
-
-				<div class="p-4 space-y-3">
-					<div>
-						<label
-							class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
-							>{{ __("Recipient Email") }}</label
-						>
-						<Input
-							v-model="email"
-							type="email"
-							placeholder="customer@example.com"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 dark:focus:ring-gray-300 placeholder-gray-400 dark:placeholder-gray-500"
-							@keydown.enter="sendEmail"
-						/>
-					</div>
-
-					<div>
-						<label
-							class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1"
-							>{{ __("Message (optional)") }}</label
-						>
-						<textarea
-							v-model="message"
-							rows="2"
-							:placeholder="__('Add a note...')"
-              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 dark:focus:ring-gray-300 placeholder-gray-400 dark:placeholder-gray-500 resize-none"
-						/>
-					</div>
-
-					<button
-						@click="sendEmail"
-						:disabled="sending || !email.trim()"
-            class="w-full py-2.5 bg-gray-950 text-white rounded-lg text-sm font-semibold hover:bg-black dark:bg-gray-100 dark:text-gray-950 dark:hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-					>
-						<Loader2 v-if="sending" :size="14" class="animate-spin" />
-						<Mail v-else :size="14" />
-						{{ sending ? __("Sending...") : __("Send Receipt") }}
-					</button>
-				</div>
+					<Loader2 v-if="sending" :size="14" class="animate-spin" />
+					<Mail v-else :size="14" />
+					{{ sending ? __("Sending...") : __("Send Receipt") }}
+				</button>
 			</div>
-		</div>
-	</Teleport>
+		</DialogContent>
+	</Dialog>
 </template>

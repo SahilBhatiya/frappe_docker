@@ -7,6 +7,7 @@ import { useDraftsStore } from '@/stores/drafts'
 import { usePosSessionStore } from '@/stores/posSession'
 import { useCurrency } from '@/composables/useCurrency'
 import { X, Play, Trash2, PauseCircle, Loader2, AlertTriangle } from 'lucide-vue-next'
+import DeleteConfirmDialog from '@/components/ui/DeleteConfirmDialog.vue'
 
 const emit = defineEmits<{
   close: []
@@ -138,33 +139,15 @@ async function confirmDelete() {
       </Transition>
     </div>
 
-    <!-- Delete confirmation dialog -->
-    <div v-if="confirmingDelete" class="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-black/40" @click="confirmingDelete = null" />
-      <div class="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl dark:shadow-black/30 w-full max-w-xs p-5 text-center">
-        <div class="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
-          <AlertTriangle :size="20" class="text-red-500 dark:text-red-400" />
-        </div>
-        <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-1">{{ __('Delete Held Order?') }}</h4>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          This will permanently delete <span class="font-semibold">{{ confirmingDelete }}</span>. This action cannot be undone.
-        </p>
-        <div class="flex gap-2">
-          <button
-            @click="confirmingDelete = null"
-            class="flex-1 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-bold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            {{ __('Cancel') }}
-          </button>
-          <button
-            @click="confirmDelete"
-            class="flex-1 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 active:scale-[0.98] transition-all"
-          >
-            {{ __('Delete') }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <DeleteConfirmDialog
+      :show="!!confirmingDelete"
+      @update:show="confirmingDelete = null"
+      :title="__('Delete Held Order?')"
+      :message="`This will permanently delete ${confirmingDelete}. This action cannot be undone.`"
+      :confirm-text="__('Delete')"
+      @confirm="confirmDelete"
+      @cancel="confirmingDelete = null"
+    />
   </Teleport>
 </template>
 

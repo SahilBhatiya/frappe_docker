@@ -9,20 +9,28 @@ import { usePosSessionStore } from "@/stores/posSession";
 import { session as userSession } from "@/stores/session";
 import { call, Tooltip } from "frappe-ui";
 import {
-  ClipboardList,
-  Grid3x3,
-  History,
-  LogOut,
-  Maximize,
-  Menu,
-  Minimize,
-  Monitor,
-  PauseCircle,
-  RotateCcw,
-  Users,
-  X,
+	BadgeIndianRupee,
+	Briefcase,
+	CalendarCheck,
+	ClipboardList,
+	Contact,
+	Grid3x3,
+	History,
+	LogOut,
+	Maximize,
+	Menu,
+	Minimize,
+	Monitor,
+	PauseCircle,
+	Receipt,
+	RotateCcw,
+	Send,
+	Settings,
+	Store,
+	Users,
+	X,
 } from "lucide-vue-next";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const { isDeskMode } = useDeskMode();
@@ -38,17 +46,140 @@ const companyAbbr = ref("P");
 const userFullName = ref("");
 const userImage = ref<string | null>(null);
 
-const navItems = [
-	{ name: __("POS"), routeName: "POS", icon: Grid3x3 },
-	{ name: __("Orders"), routeName: "Orders", icon: ClipboardList },
-	{ name: __("Customers"), routeName: "Customers", icon: Users },
-	{ name: __("Alignment"), routeName: "AlignmentHistory", icon: History },
+// ---------------------------------------------------------------------------
+// Two-level navigation
+//   Bottom dock  -> major categories (POS / CRM / HR / Settings)
+//   Left sidebar -> the pages of the currently-active category
+// ---------------------------------------------------------------------------
+interface NavPage {
+	name: string;
+	routeName: string;
+	icon: any;
+}
+interface NavCategory {
+	key: string;
+	name: string;
+	icon: any;
+	defaultRoute: string;
+	children: NavPage[];
+}
+
+const categories: NavCategory[] = [
+	{
+		key: "pos",
+		name: __("POS"),
+		icon: Store,
+		defaultRoute: "POS",
+		children: [
+			{ name: __("POS"), routeName: "POS", icon: Grid3x3 },
+			{ name: __("Orders"), routeName: "Orders", icon: ClipboardList },
+			{ name: __("Customers"), routeName: "Customers", icon: Users },
+			{ name: __("Alignment"), routeName: "AlignmentHistory", icon: History },
+		],
+	},
+	{
+		key: "crm",
+		name: __("CRM"),
+		icon: Users,
+		defaultRoute: "Customers",
+		children: [
+			{ name: __("Customers"), routeName: "Customers", icon: Users },
+			{ name: __("Reminders"), routeName: "Reminders", icon: Send },
+		],
+	},
+	{
+		key: "hr",
+		name: __("HR"),
+		icon: Briefcase,
+		defaultRoute: "Staff",
+		children: [
+			{ name: __("Staff"), routeName: "Staff", icon: Contact },
+			{ name: __("Attendance"), routeName: "Attendance", icon: CalendarCheck },
+			{ name: __("Payroll"), routeName: "Payroll", icon: BadgeIndianRupee },
+		],
+	},
+	{
+		key: "settings",
+		name: __("Settings"),
+		icon: Settings,
+		defaultRoute: "GstReport",
+		children: [{ name: __("GST"), routeName: "GstReport", icon: Receipt }],
+	},
 ];
 
+// Canonical route name (detail routes fold into their list route).
 const currentRouteName = computed(() => {
 	if (route.name === "CustomerDetail") return "Customers";
+	if (route.name === "StaffMember") return "Staff";
 	return route.name as string;
 });
+
+function categoryKeyForRoute(routeName: string): string {
+	const c = categories.find((cat) => cat.children.some((ch) => ch.routeName === routeName));
+	return c ? c.key : "pos";
+}
+
+// Active category is an explicit ref (a dock click wins) that also follows the route
+// when you navigate to a page outside the current category.
+const activeCategoryKey = ref(categoryKeyForRoute(currentRouteName.value));
+const activeCategory = computed(
+	() => categories.find((c) => c.key === activeCategoryKey.value) || categories[0],
+);
+const isPosCategory = computed(() => activeCategoryKey.value === "pos");
+
+watch(currentRouteName, (rn) => {
+	const active = categories.find((c) => c.key === activeCategoryKey.value);
+	if (!active || !active.children.some((ch) => ch.routeName === rn)) {
+		activeCategoryKey.value = categoryKeyForRoute(rn);
+	}
+});
+
+function selectCategory(cat: NavCategory) {
+	activeCategoryKey.value = cat.key;
+	// Stay on the current page if it already belongs to this category; else jump to default.
+	if (!cat.children.some((ch) => ch.routeName === currentRouteName.value)) {
+		router.push({ name: cat.defaultRoute });
+	}
+	sidebarOpen.value = false;
+}
+
+// ----- Bottom dock auto-hide -----
+// Revealed by moving the pointer to the bottom edge (desktop) or tapping the peek
+// handle (touch). Never blocks content clicks — reveal is driven by a window
+// mousemove listener, not an overlay strip.
+const dockVisible = ref(true); // always visible (auto-hide disabled)
+const dockHovered = ref(false);
+const REVEAL_PX = 24; // how close to the bottom edge triggers a reveal
+let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+function showDock() {
+	if (hideTimer) clearTimeout(hideTimer);
+	dockVisible.value = true;
+}
+function hideDock() {
+	// Dock is always visible — auto-hide disabled.
+}
+function toggleDock() {
+	if (dockVisible.value) {
+		if (hideTimer) clearTimeout(hideTimer);
+		dockVisible.value = false;
+	} else {
+		showDock();
+	}
+}
+function onDockEnter() {
+	dockHovered.value = true;
+	showDock();
+}
+function onDockLeave() {
+	dockHovered.value = false;
+	hideDock();
+}
+function onMouseMove(e: MouseEvent) {
+	if (e.clientY >= window.innerHeight - REVEAL_PX) showDock();
+	else if (!dockHovered.value && dockVisible.value) hideDock();
+}
+
 const draftCount = computed(() => draftsStore.drafts.length);
 
 const userInitials = computed(() => {
@@ -143,11 +274,18 @@ function onFullscreenChange() {
 if (typeof document !== "undefined") {
 	document.addEventListener("fullscreenchange", onFullscreenChange);
 }
+if (typeof window !== "undefined") {
+	window.addEventListener("mousemove", onMouseMove);
+}
 
 onUnmounted(() => {
 	if (typeof document !== "undefined") {
 		document.removeEventListener("fullscreenchange", onFullscreenChange);
 	}
+	if (typeof window !== "undefined") {
+		window.removeEventListener("mousemove", onMouseMove);
+	}
+	if (hideTimer) clearTimeout(hideTimer);
 });
 
 const emit = defineEmits<{
@@ -159,11 +297,11 @@ const emit = defineEmits<{
 <template>
 	<div
 		:class="[
-			'flex overflow-hidden bg-gray-50 dark:bg-gray-900 p-2',
+			'relative flex overflow-hidden bg-gray-50 dark:bg-gray-900 p-2',
 			isDeskMode ? 'h-full' : 'h-screen',
 		]"
 	>
-		<!-- Desktop Sidebar -->
+		<!-- Desktop Sidebar (pages of the active category) -->
 		<aside
 			class="hidden lg:flex flex-col items-center bg-gray-50 dark:bg-gray-900 dark:border-gray-800 mr-3"
 			:class="isDeskMode ? 'lg:w-[60px] py-1.5 gap-1' : 'lg:w-[68px] py-3 gap-1.5'"
@@ -171,9 +309,9 @@ const emit = defineEmits<{
 			<div
 				class="bg-white rounded-full p-1 flex flex-col gap-1 shadow-[0_0_50px_-10px_rgba(0,0,0,.1)]"
 			>
-				<!-- Nav items -->
+				<!-- Pages of the active category -->
 				<Tooltip
-					v-for="item in navItems"
+					v-for="item in activeCategory.children"
 					:key="item.routeName"
 					:text="item.name"
 					placement="right"
@@ -198,7 +336,9 @@ const emit = defineEmits<{
 				</Tooltip>
 			</div>
 
+			<!-- POS-only actions (act on the live cart) -->
 			<div
+				v-if="isPosCategory"
 				class="bg-white rounded-full p-1 flex flex-col gap-1 shadow-[0_0_50px_-10px_rgba(0,0,0,.1)] mt-3"
 			>
 				<!-- Held orders -->
@@ -233,7 +373,11 @@ const emit = defineEmits<{
 
 				<!-- Display -->
 				<div class="relative">
-					<Tooltip :text="__('Display')" placement="right" :disabled="showDisplayPopover">
+					<Tooltip
+						:text="__('Display')"
+						placement="right"
+						:disabled="showDisplayPopover"
+					>
 						<button
 							@click="showDisplayPopover = !showDisplayPopover"
 							aria-label="Customer Display"
@@ -268,7 +412,10 @@ const emit = defineEmits<{
 				class="bg-white rounded-full p-1 flex flex-col gap-1 shadow-[0_0_50px_-10px_rgba(0,0,0,.1)] mt-3"
 			>
 				<!-- Fullscreen toggle -->
-				<Tooltip :text="isFullscreen ? __('Exit fullscreen') : __('Fullscreen')" placement="right">
+				<Tooltip
+					:text="isFullscreen ? __('Exit fullscreen') : __('Fullscreen')"
+					placement="right"
+				>
 					<button
 						@click="toggleFullscreen"
 						:aria-label="isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
@@ -287,7 +434,9 @@ const emit = defineEmits<{
 					:text="userFullName || userSession.user?.data || ''"
 					placement="right"
 				>
-					<div class="flex flex-col items-center justify-center rounded-full mb-1 w-12 h-12 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150">
+					<div
+						class="flex flex-col items-center justify-center rounded-full mb-1 w-12 h-12 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150"
+					>
 						<img
 							v-if="userImage"
 							:src="userImage"
@@ -371,7 +520,7 @@ const emit = defineEmits<{
 				</div>
 			</header>
 
-			<!-- Mobile menu overlay -->
+			<!-- Mobile menu overlay (categories -> pages) -->
 			<Transition name="fade">
 				<div
 					v-if="sidebarOpen"
@@ -382,37 +531,44 @@ const emit = defineEmits<{
 			<Transition name="slide-right">
 				<nav
 					v-if="sidebarOpen"
-					class="lg:hidden fixed end-0 top-12 z-50 bg-white dark:bg-gray-900 shadow-xl rounded-bl-2xl w-52 border-s border-gray-100 dark:border-gray-800"
+					class="lg:hidden fixed end-0 top-12 z-50 bg-white dark:bg-gray-900 shadow-xl rounded-bl-2xl w-56 border-s border-gray-100 dark:border-gray-800"
 				>
-					<div class="py-1">
-						<button
-							v-for="item in navItems"
-							:key="item.routeName"
-							@click="navigate(item.routeName)"
-							class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors"
-							:class="
-								currentRouteName === item.routeName
-									? 'bg-gray-100 dark:bg-gray-800 text-gray-950 dark:text-gray-100'
-									: 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-							"
-						>
-							<component :is="item.icon" :size="16" />
-							{{ item.name }}
-						</button>
+					<div class="py-1 max-h-[75vh] overflow-y-auto">
+						<template v-for="cat in categories" :key="cat.key">
+							<div
+								class="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wide text-gray-400"
+							>
+								{{ cat.name }}
+							</div>
+							<button
+								v-for="item in cat.children"
+								:key="cat.key + '-' + item.routeName"
+								@click="navigate(item.routeName)"
+								class="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium transition-colors"
+								:class="
+									currentRouteName === item.routeName
+										? 'bg-gray-100 dark:bg-gray-800 text-gray-950 dark:text-gray-100'
+										: 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+								"
+							>
+								<component :is="item.icon" :size="16" />
+								{{ item.name }}
+							</button>
+						</template>
+						<div class="mx-4 my-1 border-t border-gray-100 dark:border-gray-800" />
 						<button
 							@click="
 								emit('toggleReturn');
 								sidebarOpen = false;
 							"
-							class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+							class="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
 						>
 							<RotateCcw :size="16" />
 							{{ __("Return") }}
 						</button>
-						<div class="mx-4 my-1 border-t border-gray-100 dark:border-gray-800" />
 						<button
 							@click="closeShift"
-							class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+							class="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
 						>
 							<LogOut :size="16" />
 							{{ __("Close Shift") }}
@@ -425,29 +581,60 @@ const emit = defineEmits<{
 				<slot />
 			</main>
 
-			<!-- Mobile bottom nav -->
+			<!-- Mobile bottom nav (categories) -->
 			<nav
 				class="lg:hidden flex items-center justify-around bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 h-14"
 			>
 				<button
-					v-for="item in navItems"
-					:key="item.routeName"
-					@click="navigate(item.routeName)"
+					v-for="cat in categories"
+					:key="cat.key"
+					@click="selectCategory(cat)"
 					class="flex flex-col items-center justify-center flex-1 h-full transition-colors"
 					:class="
-						currentRouteName === item.routeName
+						activeCategoryKey === cat.key
 							? 'text-gray-950 dark:text-gray-100'
 							: 'text-gray-400 dark:text-gray-500'
 					"
 				>
 					<component
-						:is="item.icon"
+						:is="cat.icon"
 						:size="18"
-						:stroke-width="currentRouteName === item.routeName ? 2.5 : 2"
+						:stroke-width="activeCategoryKey === cat.key ? 2.5 : 2"
 					/>
-					<span class="text-[9px] mt-0.5 font-semibold">{{ item.name }}</span>
+					<span class="text-[9px] mt-0.5 font-semibold">{{ cat.name }}</span>
 				</button>
 			</nav>
+		</div>
+
+		<!-- the dock itself -->
+		<div
+			class="hidden lg:flex absolute bottom-4 left-1/2 -translate-x-1/2 z-40 items-center gap-1 rounded-full border border-solid border-gray-100 dark:border-gray-700 bg-white/70 dark:bg-gray-800/90 backdrop-blur-md p-1.5 shadow-[0_26px_100px_-12px_rgba(0,0,0,.35)] ring-2 ring-gray-50 transition-all duration-300 ease-out"
+			:class="
+				dockVisible
+					? 'translate-y-0 opacity-100'
+					: 'translate-y-[180%] opacity-0 pointer-events-none'
+			"
+			@mouseenter="onDockEnter"
+			@mouseleave="onDockLeave"
+		>
+			<button
+				v-for="cat in categories"
+				:key="cat.key"
+				@click="selectCategory(cat)"
+				:aria-label="cat.name"
+				class="flex flex-col items-center justify-center gap-0.5 p-4 rounded-full transition-all duration-350 origin-bottom hover:ring-1 ring-gray-100 hover:shadow-[0_0px_300px_-2px_rgba(0,0,0,.15)]"
+				:class="
+					activeCategoryKey === cat.key
+						? 'bg-gray-50 dark:bg-gray-700 text-gray-950 dark:text-gray-100'
+						: 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/60 hover:text-gray-800 dark:hover:text-gray-200'
+				"
+			>
+				<component
+					:is="cat.icon"
+					:size="22"
+					:stroke-width="activeCategoryKey === cat.key ? 2.5 : 2"
+				/>
+			</button>
 		</div>
 	</div>
 </template>

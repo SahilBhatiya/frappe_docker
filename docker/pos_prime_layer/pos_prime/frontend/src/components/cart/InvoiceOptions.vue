@@ -89,8 +89,8 @@ const hasAnyOption = computed(() => {
     || o.set_posting_time || o.payment_terms_template || o.tc_name)
 })
 
-const selectClass = "w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 dark:focus:ring-gray-300"
-const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 dark:focus:ring-gray-300"
+const selectClass = "w-full text-xs text-gray-900 dark:text-gray-100 transition-all appearance-none"
+const inputClass = "w-full text-xs text-gray-900 dark:text-gray-100 transition-all"
 </script>
 
 <template>
@@ -116,6 +116,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
             :value="customerStore.selectedAddress || ''"
             @change="customerStore.setSelectedAddress(($event.target as HTMLSelectElement).value || null)"
             :class="selectClass"
+            data-slot="select"
           >
             <option value="">{{ __('None') }}</option>
             <option v-for="a in billingAddresses" :key="a.value" :value="a.value">{{ a.label }}</option>
@@ -127,6 +128,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
             :value="customerStore.selectedShippingAddress || ''"
             @change="customerStore.setSelectedShippingAddress(($event.target as HTMLSelectElement).value || null)"
             :class="selectClass"
+            data-slot="select"
           >
             <option value="">{{ __('None') }}</option>
             <option v-for="a in shippingAddresses" :key="a.value" :value="a.value">{{ a.label }}</option>
@@ -138,6 +140,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
             :value="customerStore.selectedContact || ''"
             @change="customerStore.setSelectedContact(($event.target as HTMLSelectElement).value || null)"
             :class="selectClass"
+            data-slot="select"
           >
             <option value="">{{ __('None') }}</option>
             <option v-for="c in contactOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
@@ -152,6 +155,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
           :value="form.sales_partner || ''"
           @change="update('sales_partner', ($event.target as HTMLSelectElement).value)"
           :class="selectClass"
+          data-slot="select"
         >
           <option value="">None</option>
           <option v-for="sp in salesPartners" :key="sp" :value="sp">{{ sp }}</option>
@@ -165,6 +169,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
           :value="form.project || ''"
           @change="update('project', ($event.target as HTMLSelectElement).value)"
           :class="selectClass"
+          data-slot="select"
         >
           <option value="">None</option>
           <option v-for="p in projects" :key="p" :value="p">{{ p }}</option>
@@ -234,6 +239,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
           :value="form.shipping_rule || ''"
           @change="update('shipping_rule', ($event.target as HTMLSelectElement).value)"
           :class="selectClass"
+          data-slot="select"
         >
           <option value="">None</option>
           <option v-for="sr in shippingRules" :key="sr" :value="sr">{{ sr }}</option>
@@ -247,6 +253,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
           :value="form.payment_terms_template || ''"
           @change="update('payment_terms_template', ($event.target as HTMLSelectElement).value)"
           :class="selectClass"
+          data-slot="select"
         >
           <option value="">None</option>
           <option v-for="pt in paymentTermsTemplates" :key="pt" :value="pt">{{ pt }}</option>
@@ -260,6 +267,7 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
           :value="form.tc_name || ''"
           @change="update('tc_name', ($event.target as HTMLSelectElement).value)"
           :class="selectClass"
+          data-slot="select"
         >
           <option value="">None</option>
           <option v-for="tc in termsTemplates" :key="tc" :value="tc">{{ tc }}</option>
@@ -273,8 +281,9 @@ const inputClass = "w-full text-xs border border-gray-200 dark:border-gray-700 b
           :value="form.remarks || ''"
           @input="update('remarks', ($event.target as HTMLTextAreaElement).value)"
           rows="2"
+          data-slot="textarea"
           :placeholder="__('Internal notes...')"
-          class="w-full text-xs border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 dark:focus:ring-gray-300 resize-none placeholder-gray-400 dark:placeholder-gray-500"
+          class="w-full text-xs text-gray-900 dark:text-gray-100 resize-none transition-all"
         />
       </div>
     </div>

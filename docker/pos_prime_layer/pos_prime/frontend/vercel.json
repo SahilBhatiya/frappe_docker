@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "yarn install --frozen-lockfile",
+  "buildCommand": "yarn build:vercel",
+  "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/pos-prime",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/method/:path*",
+      "destination": "/api/frappe-proxy?path=:path*"
+    },
+    {
+      "source": "/pos-prime/:path*",
+      "destination": "/index.html"
+    }
+  ]
+}

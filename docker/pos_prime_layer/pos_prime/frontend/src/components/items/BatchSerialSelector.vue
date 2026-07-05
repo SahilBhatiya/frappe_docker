@@ -5,6 +5,12 @@
 import Input from "@/components/ui/input/Input.vue";
 import { toast } from "@/composables/useToast";
 import { useSettingsStore } from "@/stores/settings";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { call } from "frappe-ui";
 import { Check, X, Zap } from "lucide-vue-next";
 import { computed, onMounted, ref } from "vue";
@@ -128,40 +134,22 @@ function confirm() {
 </script>
 
 <template>
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4"
-		role="dialog"
-		aria-modal="true"
-		:aria-label="__('Select Batch or Serial Number')"
-		@keydown.escape="emit('close')"
-	>
-		<div
-			class="absolute inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-md"
-			@click="emit('close')"
-		/>
-		<div
-			class="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl dark:shadow-black/30 w-full max-w-md max-h-[80vh] overflow-y-auto"
-		>
-			<div
-				class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex items-center justify-between rounded-t-xl z-10"
-			>
+	<Dialog :open="true" @update:open="(val) => { if (!val) emit('close') }">
+		<DialogContent class="sm:max-w-md max-h-[80vh] p-0 gap-0 overflow-hidden flex flex-col" :show-close-button="false">
+			<!-- Header -->
+			<DialogHeader class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-3 flex-row items-center justify-between rounded-t-xl shrink-0 z-10 space-y-0">
 				<div>
-					<h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">
+					<DialogTitle class="text-base font-semibold text-gray-900 dark:text-gray-100">
 						{{ __("Select") }} {{ hasBatchNo ? __("Batch") : ""
 						}}{{ hasBatchNo && hasSerialNo ? " & " : ""
 						}}{{ hasSerialNo ? __("Serial No") : "" }}
-					</h3>
+					</DialogTitle>
 					<p class="text-xs text-gray-500 dark:text-gray-400">{{ itemName }}</p>
 				</div>
-				<button
-					@click="emit('close')"
-					class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-				>
-					<X :size="18" />
-				</button>
-			</div>
+			</DialogHeader>
 
-			<div class="p-4 space-y-4">
+			<!-- Scrollable body -->
+			<div class="flex-1 overflow-y-auto p-4 space-y-4">
 				<div
 					v-if="loading"
 					class="text-center py-8 text-gray-400 dark:text-gray-500 text-sm"
@@ -290,6 +278,6 @@ function confirm() {
 					{{ __("Confirm") }}
 				</button>
 			</div>
-		</div>
-	</div>
+		</DialogContent>
+	</Dialog>
 </template>

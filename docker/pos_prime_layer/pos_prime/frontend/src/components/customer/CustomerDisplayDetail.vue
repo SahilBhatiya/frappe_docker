@@ -7,9 +7,10 @@ import { useSettingsStore } from "@/stores/settings";
 import type { CustomerCar } from "@/types";
 import { deskUrl } from "@/utils/deskUrl";
 import {
-	Award, Car, CreditCard, ExternalLink, FileText, History, Mail, MapPin,
-	Plus, ReceiptText, Star, User, WalletCards,
+	Award, Car, CreditCard, ExternalLink, FileText, Gift, History, Mail, MapPin,
+	Plus, ReceiptText, Star, User, UserPlus, WalletCards, X,
 } from "lucide-vue-next";
+import { call } from "frappe-ui";
 import { computed, reactive, ref } from "vue";
 
 const store = useCustomerDisplayStore();
@@ -29,9 +30,40 @@ const carForm = reactive({
 
 const stats = computed(() => [
 	{ label: __("Outstanding"), value: formatCurrency(store.outstanding.outstanding), icon: CreditCard, color: "text-orange-500" },
-	{ label: __("Loyalty Points"), value: String(store.selectedCustomer?.loyalty_points || 0), icon: Award, color: "text-purple-500" },
+	{ label: __("Referral Credit"), value: formatCurrency(store.referral.referral_credit), icon: Gift, color: "text-emerald-500" },
 	{ label: __("Invoices"), value: String(store.invoices.length), icon: FileText, color: "text-gray-700 dark:text-gray-300" },
 ]);
+
+// ----- Referral -----
+const editingReferrer = ref(false);
+const referrerSearch = ref("");
+const referrerResults = ref<{ name: string; customer_name: string }[]>([]);
+const savingReferrer = ref(false);
+let referrerTimer: ReturnType<typeof setTimeout>;
+
+function onReferrerSearch() {
+	clearTimeout(referrerTimer);
+	const term = referrerSearch.value.trim();
+	if (term.length < 2) { referrerResults.value = []; return; }
+	referrerTimer = setTimeout(async () => {
+		try {
+			const data = await call("pos_prime.api.customers.search_customers", { search_term: term });
+			referrerResults.value = (data || []).filter((c: any) => c.name !== store.selectedCustomer?.name);
+		} catch { referrerResults.value = []; }
+	}, 300);
+}
+
+async function pickReferrer(name: string | null) {
+	savingReferrer.value = true;
+	try {
+		await store.setReferredBy(name);
+		editingReferrer.value = false;
+		referrerSearch.value = "";
+		referrerResults.value = [];
+	} finally {
+		savingReferrer.value = false;
+	}
+}
 
 function formatCurrency(amount = 0, currency?: string) {
 	const cur = currency || settingsStore.currency || "USD";
@@ -148,7 +180,7 @@ async function createCar() {
 			</div>
 
 			<Transition name="customer-tab-blur" mode="out-in">
-			<TabsContent v-if="activeTab === 'overview'" value="overview" class="w-full space-y-4 mt-0">
+			<TabsContent v-if="activeTab === 'overview'" key="overview" value="overview" class="w-full space-y-4 mt-0">
 				<div class="detail-card">
 					<h4 class="detail-heading">{{ __("Basic Info") }}</h4>
 					<div class="grid sm:grid-cols-2 gap-3 text-sm">
@@ -157,6 +189,34 @@ async function createCar() {
 						<div v-if="store.selectedCustomer.mobile_no" class="info-row"><WalletCards :size="14" /> <span>{{ store.selectedCustomer.mobile_no }}</span></div>
 						<div v-if="store.selectedCustomer.email_id" class="info-row"><Mail :size="14" /> <span>{{ store.selectedCustomer.email_id }}</span></div>
 						<div v-if="store.selectedCustomer.tax_id" class="info-row"><FileText :size="14" /> <span>{{ __("Tax ID") }}: {{ store.selectedCustomer.tax_id }}</span></div>
+					</div>
+				</div>
+
+				<div class="detail-card">
+					<div class="flex items-center justify-between mb-2">
+						<h4 class="detail-heading mb-0">{{ __("Referral") }}</h4>
+						<span v-if="store.referral.referred_count" class="text-xs text-gray-500 dark:text-gray-400">{{ store.referral.referred_count }} {{ __("referred") }}</span>
+					</div>
+					<div class="text-sm space-y-2">
+						<div class="info-row"><Gift :size="14" class="text-emerald-500" /> <span>{{ __("Referral credit") }}: <strong>{{ formatCurrency(store.referral.referral_credit) }}</strong></span></div>
+						<div v-if="!editingReferrer" class="info-row flex-wrap">
+							<UserPlus :size="14" />
+							<span v-if="store.referral.referred_by_name">{{ __("Referred by") }}: <strong>{{ store.referral.referred_by_name }}</strong></span>
+							<span v-else class="text-gray-400">{{ __("No referrer set") }}</span>
+							<button class="text-xs text-gray-950 dark:text-gray-100 hover:underline ml-2" @click="editingReferrer = true">{{ store.referral.referred_by ? __("Change") : __("Add") }}</button>
+							<button v-if="store.referral.referred_by" class="text-xs text-red-500 hover:underline ml-1" @click="pickReferrer(null)">{{ __("Clear") }}</button>
+						</div>
+						<div v-else class="relative">
+							<div class="flex items-center gap-2">
+								<input v-model="referrerSearch" @input="onReferrerSearch" type="text" :placeholder="__('Search referrer…')" class="flex-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950" />
+								<button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" @click="editingReferrer = false"><X :size="14" /></button>
+							</div>
+							<div v-if="referrerResults.length" class="absolute z-10 mt-1 w-full max-h-44 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+								<button v-for="r in referrerResults" :key="r.name" @click="pickReferrer(r.name)" :disabled="savingReferrer" class="block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100">
+									{{ r.customer_name }}
+								</button>
+							</div>
+						</div>
 					</div>
 				</div>
 
@@ -192,7 +252,7 @@ async function createCar() {
 				</div>
 			</TabsContent>
 
-			<TabsContent v-else-if="activeTab === 'transactions'" value="transactions" class="w-full mt-0"><div class="detail-card"><h4 class="detail-heading">{{ __("All Transactions") }}</h4>
+			<TabsContent v-else-if="activeTab === 'transactions'" key="transactions" value="transactions" class="w-full mt-0"><div class="detail-card"><h4 class="detail-heading">{{ __("All Transactions") }}</h4>
 				<div v-if="!store.transactions.length" class="empty-state">{{ __("No transactions found") }}</div>
 				<div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
 					<a v-for="(tx, index) in store.transactions" :key="`${tx.type}-${tx.name}-${tx.mode_of_payment}-${index}`" :href="tx.type === 'payment' ? paymentHistoryUrl(tx) : invoiceUrl(tx)" target="_blank" class="flex items-center gap-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 px-2 rounded-lg">
@@ -203,14 +263,14 @@ async function createCar() {
 				</div></div>
 			</TabsContent>
 
-			<TabsContent v-else-if="activeTab === 'payments'" value="payments" class="w-full mt-0"><div class="detail-card"><h4 class="detail-heading">{{ __("Payment History") }}</h4>
+			<TabsContent v-else-if="activeTab === 'payments'" key="payments" value="payments" class="w-full mt-0"><div class="detail-card"><h4 class="detail-heading">{{ __("Payment History") }}</h4>
 				<div v-if="!store.payments.length" class="empty-state">{{ __("No payments found") }}</div>
 				<div v-else class="table-wrap"><table class="detail-table"><thead><tr><th>{{ __("Payment") }}</th><th>{{ __("Date") }}</th><th>{{ __("Method") }}</th><th>{{ __("Type") }}</th><th class="text-right">{{ __("Amount") }}</th></tr></thead><tbody>
 					<tr v-for="(payment, index) in store.payments" :key="`${payment.source_doctype}-${payment.name}-${payment.mode_of_payment}-${index}`"><td><a :href="paymentHistoryUrl(payment)" target="_blank" class="link">{{ payment.name }}</a></td><td>{{ formatDate(payment.posting_date) }}</td><td>{{ payment.mode_of_payment || "-" }}</td><td>{{ payment.payment_type }}</td><td class="text-right font-medium">{{ formatCurrency(payment.received_amount || payment.paid_amount) }}</td></tr>
 				</tbody></table></div></div>
 			</TabsContent>
 
-			<TabsContent v-else-if="activeTab === 'cars'" value="cars" class="w-full mt-0"><div class="detail-card">
+			<TabsContent v-else-if="activeTab === 'cars'" key="cars" value="cars" class="w-full mt-0"><div class="detail-card">
 				<div class="flex items-center justify-between mb-3"><h4 class="detail-heading mb-0">{{ __("Cars") }}</h4><Button @click="openAddCar"><Plus :size="14" />{{ __("Add Car") }}</Button></div>
 				<div v-if="!store.cars.length" class="empty-state"><Car :size="28" class="mx-auto mb-2" />{{ __("No cars added yet") }}</div>
 				<div v-else class="grid sm:grid-cols-2 gap-3"><button v-for="car in store.cars" :key="car.name || car.registration_number" type="button" @click="openCarEditor(car)" class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
@@ -218,7 +278,7 @@ async function createCar() {
 				</button></div>
 			</div></TabsContent>
 
-			<TabsContent v-else value="invoices" class="w-full mt-0"><div class="detail-card"><h4 class="detail-heading">{{ __("Invoices") }}</h4>
+			<TabsContent v-else key="invoices" value="invoices" class="w-full mt-0"><div class="detail-card"><h4 class="detail-heading">{{ __("Invoices") }}</h4>
 				<div v-if="!store.invoices.length" class="empty-state">{{ __("No invoices found") }}</div>
 				<div v-else class="table-wrap"><table class="detail-table"><thead><tr><th>{{ __("Invoice") }}</th><th>{{ __("Date") }}</th><th>{{ __("Type") }}</th><th class="text-right">{{ __("Qty") }}</th><th class="text-right">{{ __("Total") }}</th><th>{{ __("Status") }}</th></tr></thead><tbody>
 					<tr v-for="inv in store.invoices" :key="`${inv.doctype}-${inv.name}`"><td><a :href="invoiceUrl(inv)" target="_blank" class="link">{{ inv.name }}</a></td><td>{{ formatDate(inv.posting_date) }}</td><td>{{ inv.doctype }}</td><td class="text-right">{{ inv.total_qty }}</td><td class="text-right font-medium">{{ formatCurrency(inv.grand_total, inv.currency) }}</td><td><span class="badge">{{ inv.is_return ? __("Return") : inv.status }}</span></td></tr>
@@ -228,7 +288,7 @@ async function createCar() {
 		</Tabs>
 
 		<Dialog v-model:open="showAddCar">
-			<DialogContent class="car-dialog sm:max-w-lg !gap-0 !rounded-2xl !p-0 [&_*]:box-border">
+			<DialogContent class="car-dialog sm:max-w-lg !gap-0 !rounded-2xl !p-0 focus:!outline-none focus-visible:!outline-none [&_*]:box-border">
 				<DialogHeader class="border-b border-gray-100 dark:border-gray-700 px-6 py-5">
 					<DialogTitle>{{ editingCar ? __("Edit Car") : __("Add Car") }}</DialogTitle>
 				</DialogHeader>

@@ -8,6 +8,14 @@ import type { CartItem, Item, TaxRow, InvoiceOptions } from '@/types'
 
 let taxRequestId = 0
 
+// Monotonic counter for stable per-line ids. Used as the cart render/transition
+// key so deleting a line doesn't re-key (and re-animate) the lines below it.
+let lineIdCounter = 0
+function nextLineId(): string {
+  lineIdCounter += 1
+  return `line-${Date.now().toString(36)}-${lineIdCounter}`
+}
+
 // Persist the cart across page reloads / tab switches so an in-progress
 // sale is not lost when the user navigates away and comes back. The cart is
 // scoped per shift (POS Opening Entry) so cashiers sharing a terminal never
@@ -135,7 +143,11 @@ export const useCartStore = defineStore('cart', () => {
     const key = scopedKey(shiftId)
     currentStorageKey.value = key
     const saved = readPersistedCart(key)
-    items.value = saved.items ?? []
+    // Backfill uids for carts persisted before stable line ids existed.
+    items.value = (saved.items ?? []).map((item) => ({
+      ...item,
+      uid: item.uid || nextLineId(),
+    }))
     selectedItemIndex.value = saved.selectedItemIndex ?? null
     discountType.value = saved.discountType ?? 'percentage'
     discountValue.value = saved.discountValue ?? 0
@@ -185,6 +197,7 @@ export const useCartStore = defineStore('cart', () => {
 
   function createCartItem(item: Item): CartItem {
     return {
+      uid: nextLineId(),
       item_code: item.item_code,
       item_name: item.item_name,
       rate: item.rate,
@@ -380,6 +393,9 @@ export const useCartStore = defineStore('cart', () => {
         discount_amount: additionalDiscountAmount.value,
         apply_discount_on: applyDiscountOn.value,
         coupon_code: couponCode.value || undefined,
+        // Billing address drives GST place of supply (intra vs inter-state),
+        // so CGST/SGST vs IGST is reflected live in the cart preview.
+        customer_address: customerStore.selectedAddress || undefined,
       })
 
       if (currentId !== taxRequestId) return
@@ -461,6 +477,7 @@ export const useCartStore = defineStore('cart', () => {
     // Add free items from Buy X Get Y rules
     for (const fi of freeItems) {
       items.value.push({
+        uid: nextLineId(),
         item_code: fi.item_code,
         item_name: fi.item_name,
         rate: fi.rate || 0,

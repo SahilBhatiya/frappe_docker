@@ -28,6 +28,8 @@ watch(
 			customerName.value = props.initialName || "";
 			mobileNo.value = "";
 			emailId.value = "";
+			gstin.value = "";
+			gstCategory.value = "";
 			currentStepIndex.value = 0;
 			error.value = "";
 		}
@@ -49,6 +51,35 @@ const emailId = ref("");
 const customerType = ref("Individual");
 const customerGroup = ref("");
 const extraFields = ref<Record<string, string>>({});
+
+// Referral capture
+const referredBy = ref("");
+const referredByName = ref("");
+const referrerSearch = ref("");
+const gstin = ref("");
+const gstCategory = ref("");
+const referrerResults = ref<{ name: string; customer_name: string }[]>([]);
+let referrerTimer: ReturnType<typeof setTimeout>;
+
+function onReferrerSearch() {
+	clearTimeout(referrerTimer);
+	referredBy.value = "";
+	referredByName.value = "";
+	const term = referrerSearch.value.trim();
+	if (term.length < 2) { referrerResults.value = []; return; }
+	referrerTimer = setTimeout(async () => {
+		try {
+			referrerResults.value = await call("pos_prime.api.customers.search_customers", { search_term: term }) || [];
+		} catch { referrerResults.value = []; }
+	}, 300);
+}
+
+function pickReferrer(r: { name: string; customer_name: string }) {
+	referredBy.value = r.name;
+	referredByName.value = r.customer_name;
+	referrerSearch.value = r.customer_name;
+	referrerResults.value = [];
+}
 
 const loading = ref(false);
 const loadingOptions = ref(true);
@@ -136,6 +167,17 @@ function validateStep() {
 	return true;
 }
 
+function onGstinInput() {
+	// A GSTIN means the customer is GST-registered; default the category so the
+	// backend applies B2B / inter-state (IGST) logic. Cleared GSTIN resets it.
+	gstin.value = gstin.value.toUpperCase();
+	if (gstin.value.trim() && !gstCategory.value) {
+		gstCategory.value = "Registered Regular";
+	} else if (!gstin.value.trim()) {
+		gstCategory.value = "";
+	}
+}
+
 function handleNext() {
 	if (validateStep()) {
 		currentStepIndex.value++;
@@ -161,6 +203,9 @@ async function handleCreate() {
 			customer_group: customerGroup.value || undefined,
 			pos_profile: sessionStore.posProfile || undefined,
 			...extraFields.value,
+			custom_referred_by: referredBy.value || undefined,
+				gstin: gstin.value.trim().toUpperCase() || undefined,
+				gst_category: gstCategory.value || undefined,
 		});
 		emit("created");
 	} catch (e: any) {
@@ -225,7 +270,8 @@ async function handleCreate() {
 						>
 						<select
 							v-model="customerType"
-							class="w-full rounded-xl border border-solid border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 px-4 py-3 text-base focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 transition-all outline-none appearance-none"
+							data-slot="select"
+							class="w-full text-gray-900 dark:text-gray-100 text-base transition-all appearance-none"
 						>
 							<option v-for="t in customerTypes" :key="t" :value="t">
 								{{ __(t) }}
@@ -241,7 +287,8 @@ async function handleCreate() {
 						>
 						<select
 							v-model="customerGroup"
-							class="w-full rounded-xl border border-solid border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 px-4 py-3 text-base focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 transition-all outline-none appearance-none"
+							data-slot="select"
+							class="w-full text-gray-900 dark:text-gray-100 text-base transition-all appearance-none"
 						>
 							<option v-for="g in customerGroups" :key="g" :value="g">
 								{{ g }}
@@ -295,6 +342,38 @@ async function handleCreate() {
 							@keydown.enter="handleNext"
 						/>
 					</div>
+
+					<!-- GSTIN (optional) -->
+					<div>
+							<label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ __("GSTIN") }} <span class="text-gray-400 font-normal">({{ __("optional") }})</span></label>
+							<Input
+								v-model="gstin"
+								type="text"
+								maxlength="15"
+								class="w-full rounded-xl border border-solid border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 px-4 py-3 text-base uppercase focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 transition-all placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+								:placeholder="__('e.g. 24AADFA2635A1ZA')"
+								@input="onGstinInput"
+							/>
+							<p v-if="gstin" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ __("Registered customer — used for B2B GST and inter-state IGST.") }}</p>
+						</div>
+
+					<!-- Referred by (optional) -->
+					<div class="relative">
+						<label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ __("Referred By") }} <span class="text-gray-400 font-normal">({{ __("optional") }})</span></label>
+						<Input
+							v-model="referrerSearch"
+							type="text"
+							@input="onReferrerSearch"
+							class="w-full rounded-xl border border-solid border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 px-4 py-3 text-base focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 transition-all placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+							:placeholder="__('Search the customer who referred them…')"
+						/>
+						<div v-if="referrerResults.length" class="absolute z-20 mt-1 w-full max-h-44 overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+							<button v-for="r in referrerResults" :key="r.name" type="button" @click="pickReferrer(r)" class="block w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100">
+								{{ r.customer_name }}
+							</button>
+						</div>
+						<p v-if="referredBy" class="mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">{{ __("They'll earn ₹50 credit after this customer's first service.") }}</p>
+					</div>
 				</div>
 			</div>
 		</template>
@@ -323,7 +402,8 @@ async function handleCreate() {
 						<select
 							v-if="field.fieldtype === 'Select' && field.options"
 							v-model="extraFields[field.fieldname]"
-							class="w-full rounded-xl border border-solid border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 px-4 py-3 text-base focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 transition-all outline-none appearance-none"
+							data-slot="select"
+							class="w-full text-gray-900 dark:text-gray-100 text-base transition-all appearance-none"
 						>
 							<option value="">{{ __("Select...") }}</option>
 							<option

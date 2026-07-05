@@ -1,0 +1,41 @@
+# WAHA (WhatsApp HTTP API) — reproducible config for POS Prime reminders.
+#
+# Recreated from the original bare `docker run` so the setup is version-controlled.
+# The WhatsApp session lives in the external `waha_sessions` volume, so recreating
+# this container does NOT require re-scanning the QR code.
+#
+# AUTH POSTURE (intentional, per owner request):
+#   - API key IS kept (WAHA_API_KEY, loaded from the gitignored .env) so the REST
+#     API stays protected and matches `pos_prime_waha_api_key` in the ERPNext site
+#     config. Required if WAHA is ever reachable beyond localhost.
+#   - Dashboard + Swagger basic-auth is REMOVED (blank credentials) so the web UI at
+#     http://localhost:3100/dashboard no longer prompts for a login. WAHA only applies
+#     basic-auth when a username is set; blank disables the prompt.
+
+services:
+  waha:
+    image: devlikeapro/waha
+    container_name: waha
+    restart: unless-stopped
+    ports:
+      - "3100:3000"
+    environment:
+      # --- preserved from the original container ---
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WHATSAPP_RESTART_ALL_SESSIONS: "true"
+      # --- API stays protected (key comes from docker/waha/.env, not committed) ---
+      WAHA_API_KEY: ${WAHA_API_KEY}
+      WHATSAPP_API_KEY: ${WAHA_API_KEY}
+      # --- dashboard/swagger login removed ---
+      # WAHA requires BOTH a blank password AND the *_NO_PASSWORD flag; blank
+      # creds alone do NOT disable the prompt.
+      WAHA_DASHBOARD_PASSWORD: ""
+      WAHA_DASHBOARD_NO_PASSWORD: "True"
+      WHATSAPP_SWAGGER_PASSWORD: ""
+      WHATSAPP_SWAGGER_NO_PASSWORD: "True"
+    volumes:
+      - waha_sessions:/app/.sessions
+
+volumes:
+  waha_sessions:
+    external: true

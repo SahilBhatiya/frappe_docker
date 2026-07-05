@@ -187,17 +187,19 @@ function formatDate(dateStr: string) {
 										class="w-full text-left p-3 rounded-lg border transition-all duration-150"
 										:class="
 											store.selectedCustomer?.name === c.name
-												? 'border-gray-950 bg-gray-100 dark:bg-gray-800 dark:border-gray-300'
+												? 'border-primary bg-primary text-primary-foreground'
 												: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
 										"
 									>
 										<div
-											class="font-medium text-sm text-gray-900 dark:text-gray-100"
+											class="font-medium text-sm"
+											:class="store.selectedCustomer?.name === c.name ? 'text-primary-foreground' : 'text-gray-900 dark:text-gray-100'"
 										>
 											{{ c.customer_name }}
 										</div>
 										<div
-											class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+											class="text-xs mt-0.5"
+											:class="store.selectedCustomer?.name === c.name ? 'text-primary-foreground/70' : 'text-gray-500 dark:text-gray-400'"
 										>
 											{{ c.name }}
 										</div>
@@ -250,14 +252,14 @@ function formatDate(dateStr: string) {
 								class="w-full text-left p-3 rounded-lg border transition-all duration-150"
 								:class="
 									store.selectedCustomer?.name === c.name
-										? 'border-gray-950 bg-gray-100 dark:bg-gray-800 dark:border-gray-300'
+										? 'border-primary bg-primary text-primary-foreground'
 										: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
 								"
 							>
-								<div class="font-medium text-sm text-gray-900 dark:text-gray-100">
+								<div class="font-medium text-sm" :class="store.selectedCustomer?.name === c.name ? 'text-primary-foreground' : 'text-gray-900 dark:text-gray-100'">
 									{{ c.customer_name }}
 								</div>
-								<div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+								<div class="text-xs mt-0.5" :class="store.selectedCustomer?.name === c.name ? 'text-primary-foreground/70' : 'text-gray-500 dark:text-gray-400'">
 									{{ c.name }}
 								</div>
 								<div

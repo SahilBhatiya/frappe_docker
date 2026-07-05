@@ -76,6 +76,9 @@ export interface Item {
 }
 
 export interface CartItem {
+  // Stable per-line identifier used as the render/transition key so removing a
+  // line doesn't re-key (and re-animate) the lines below it.
+  uid: string
   item_code: string
   item_name: string
   rate: number
@@ -128,6 +131,8 @@ export interface Customer {
   customer_group: string | null
   tax_id?: string | null
   custom_whatsapp?: string | null
+  gstin?: string | null
+  gst_category?: string | null
 }
 
 export interface CustomerCar {
@@ -226,6 +231,12 @@ export interface POSInvoice {
   customer: string
   customer_name: string
   tax_id?: string | null
+
+  // GST (India)
+  company_gstin?: string | null
+  billing_address_gstin?: string | null
+  place_of_supply?: string | null
+  gst_category?: string | null
 
   // Address & contact
   customer_address?: string | null
@@ -375,6 +386,8 @@ export interface InvoiceItem {
   rate_with_margin?: number
   item_tax_template?: string | null
   item_tax_rate?: string | null
+  gst_hsn_code?: string | null
+  gst_treatment?: string | null
   is_free_item?: boolean
   serial_no: string | null
   batch_no: string | null
@@ -415,4 +428,101 @@ export interface ClosingEntry {
     closing_amount: number
     difference: number
   }[]
+}
+
+// ---------------------------------------------------------------------------
+// Staff Payroll module
+// ---------------------------------------------------------------------------
+
+export interface StaffMember {
+  name: string
+  employee_name: string
+  designation: string | null
+  cell_number: string | null
+  status: string
+  date_of_joining: string | null
+  company: string | null
+  image: string | null
+  monthly_salary: number
+  outstanding_advance: number
+}
+
+export type AdvanceStatus =
+  | 'Outstanding'
+  | 'Partially Adjusted'
+  | 'Adjusted'
+  | 'Cancelled'
+
+export interface StaffAdvance {
+  name: string
+  employee: string
+  employee_name?: string
+  date: string
+  amount: number
+  balance: number
+  status: AdvanceStatus
+  notes: string | null
+}
+
+export type AttendanceStatus = 'Present' | 'Absent' | 'Half Day' | 'Leave' | 'Holiday'
+
+export interface StaffAttendance {
+  name: string
+  employee: string
+  employee_name: string
+  attendance_date: string
+  status: AttendanceStatus
+  check_in: string | null
+  check_out: string | null
+  working_hours: number | null
+  notes: string | null
+}
+
+// A row of the single-day marking grid (active employee + their status for that day)
+export interface AttendanceDayRow {
+  name: string
+  employee_name: string
+  status: AttendanceStatus | null
+  check_in: string | null
+  check_out: string | null
+  working_hours: number | null
+  notes: string | null
+}
+
+export type PayslipStatus = 'Draft' | 'Paid' | 'Cancelled'
+
+export interface PayslipAdvanceRow {
+  advance: string
+  advance_date: string | null
+  advance_amount: number
+  amount_deducted: number
+}
+
+export interface StaffPayslip {
+  name: string
+  employee: string
+  employee_name: string
+  period_label: string | null
+  start_date: string
+  end_date: string
+  base_salary: number
+  total_advance_deducted: number
+  adjustment: number
+  adjustment_note?: string | null
+  net_pay: number
+  status: PayslipStatus
+  paid_on: string | null
+  payment_mode: string | null
+  advances?: PayslipAdvanceRow[]
+}
+
+// A row of the payroll-run preview (one active employee for the selected period)
+export interface PayrollPreviewRow {
+  employee: string
+  employee_name: string
+  base_salary: number
+  advances: { name: string; date: string; amount: number; balance: number }[]
+  suggested_deduction: number
+  net_preview: number
+  existing_payslip: { name: string; status: PayslipStatus; net_pay: number } | null
 }

@@ -99,7 +99,9 @@ function clear() {
 </template>
 
 <style scoped>
+.item-search-input:focus,
 .item-search-input:focus-visible {
   outline: none !important;
+  box-shadow: none !important;
 }
 </style>

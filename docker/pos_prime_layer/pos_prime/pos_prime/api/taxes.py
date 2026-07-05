@@ -6,6 +6,7 @@ from frappe import _
 import json
 
 from pos_prime.api._utils import safe_float
+from pos_prime.api._gst import apply_gst
 
 
 @frappe.whitelist()
@@ -17,6 +18,7 @@ def calculate_taxes(
     discount_amount=0,
     apply_discount_on="Grand Total",
     coupon_code=None,
+    customer_address=None,
 ):
     """Calculate taxes using ERPNext's built-in tax engine.
 
@@ -66,6 +68,11 @@ def calculate_taxes(
         if profile.tax_category:
             invoice.tax_category = profile.tax_category
 
+        # Customer billing address — drives GST place of supply (intra vs
+        # inter-state) so the correct CGST/SGST vs IGST template is selected.
+        if customer_address:
+            invoice.customer_address = customer_address
+
         # Add items with full field support
         for item_data in items:
             item_dict = {
@@ -92,6 +99,12 @@ def calculate_taxes(
                 item_dict["margin_type"] = item_data["margin_type"]
                 item_dict["margin_rate_or_amount"] = item_data.get("margin_rate_or_amount", 0)
             invoice.append("items", item_dict)
+
+        # Apply GST (India): resolve and set the correct GST tax template,
+        # place of supply and GSTINs before the tax engine runs. No-op on
+        # non-India sites. Must run before set_missing_values() so per-item
+        # Item Tax Templates and GST rates are picked up.
+        apply_gst(invoice, profile, customer_address)
 
         # Use ERPNext's built-in tax calculation
         invoice.set_missing_values()
@@ -341,6 +354,12 @@ def calculate_taxes(
             "apply_discount_on": invoice.apply_discount_on,
             "pricing_rules": pricing_rules,
             "free_items": free_items,
+            # GST (India) — empty/None on non-India sites
+            "place_of_supply": invoice.get("place_of_supply"),
+            "company_gstin": invoice.get("company_gstin"),
+            "billing_address_gstin": invoice.get("billing_address_gstin"),
+            "gst_category": invoice.get("gst_category"),
+            "taxes_and_charges": invoice.get("taxes_and_charges"),
         }
     except Exception as e:
         frappe.log_error(frappe.get_traceback(), "POS Prime: calculate_taxes failed")

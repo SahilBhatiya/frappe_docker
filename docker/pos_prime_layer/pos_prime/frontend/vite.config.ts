@@ -129,6 +129,7 @@ import fs from 'fs'
 export default defineConfig(({ mode }) => {
   // Load FRAPPE_* (no VITE_ prefix => stays server-side, never bundled).
   const env = loadEnv(mode, path.resolve(__dirname), '')
+  const isVercelBuild = mode === 'vercel' || env.VERCEL === '1' || env.VITE_DEPLOY_TARGET === 'vercel'
   const envPath = path.resolve(__dirname, '.env.development')
   
   let customToken = ''
@@ -146,20 +147,26 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      frappeui({
-        buildConfig: {
-          indexHtmlPath: path.resolve(
-            __dirname,
-            '../pos_prime/www/pos_prime.html'
-          ),
-        },
-      }),
+      ...(!isVercelBuild
+        ? [
+            frappeui({
+              // The custom proxy below handles Frappe routes and token authentication.
+              frappeProxy: false,
+              buildConfig: {
+                indexHtmlPath: path.resolve(
+                  __dirname,
+                  '../pos_prime/www/pos_prime.html'
+                ),
+              },
+            }),
+          ]
+        : []),
       vue(),
       Icons({
-        autoInstall: true,
+        autoInstall: false,
         compiler: 'vue3',
       }),
-      injectFrappeContext(),
+      ...(!isVercelBuild ? [injectFrappeContext()] : []),
     ],
     resolve: {
       alias: {
@@ -167,11 +174,16 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      manifest: true,
+      manifest: !isVercelBuild,
+      outDir: isVercelBuild ? 'dist' : undefined,
+      emptyOutDir: true,
     },
     optimizeDeps: {
+      // frappe-ui contains virtual ~icons imports that must be handled by its
+      // Vite plugins instead of esbuild's dependency pre-bundler.
+      exclude: ['frappe-ui'],
       include: [
-        'frappe-ui > feather-icons',
+        'feather-icons',
         'engine.io-client',
         'debug',
         // grid-layout-plus (used by frappe-ui) and its CJS/UMD dep interactjs must be

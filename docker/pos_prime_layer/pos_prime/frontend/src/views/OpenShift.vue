@@ -149,7 +149,8 @@ async function openShift() {
           <select
             v-model="selectedProfile"
             @change="onProfileChange"
-            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300"
+            class="w-full text-sm transition-all appearance-none"
+            data-slot="select"
           >
             <option value="">{{ __('Select Profile...') }}</option>
             <option
@@ -169,7 +170,8 @@ async function openShift() {
           <Input
             :value="company"
             readonly
-            class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm text-gray-600 dark:text-gray-400"
+            class="w-full text-sm text-gray-600 dark:text-gray-400 transition-all"
+            data-slot="input"
           />
         </div>
 
@@ -192,7 +194,8 @@ async function openShift() {
                 type="number"
                 min="0"
                 step="0.01"
-                class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300"
+                class="flex-1 text-sm transition-all"
+                data-slot="input"
                 placeholder="0.00"
               />
               <button

@@ -35,6 +35,36 @@ const routes = [
         component: () => import('./views/AlignmentHistory.vue'),
         name: 'AlignmentHistory',
       },
+      {
+        path: 'reminders',
+        component: () => import('./views/Reminders.vue'),
+        name: 'Reminders',
+      },
+      {
+        path: 'gst-report',
+        component: () => import('./views/GstReport.vue'),
+        name: 'GstReport',
+      },
+      {
+        path: 'staff',
+        component: () => import('./views/Staff.vue'),
+        name: 'Staff',
+      },
+      {
+        path: 'staff/:id',
+        component: () => import('./views/Staff.vue'),
+        name: 'StaffMember',
+      },
+      {
+        path: 'attendance',
+        component: () => import('./views/Attendance.vue'),
+        name: 'Attendance',
+      },
+      {
+        path: 'payroll',
+        component: () => import('./views/Payroll.vue'),
+        name: 'Payroll',
+      },
     ],
   },
   {

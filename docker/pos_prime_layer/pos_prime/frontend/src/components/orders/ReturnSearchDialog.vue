@@ -7,8 +7,14 @@ import { useCurrency } from "@/composables/useCurrency";
 import { useCustomerStore } from "@/stores/customer";
 import { usePosSessionStore } from "@/stores/posSession";
 import { useSettingsStore } from "@/stores/settings";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { call } from "frappe-ui";
-import { Loader2, Minus, Plus, RotateCcw, Search, Trash2, X } from "lucide-vue-next";
+import { Loader2, Minus, Plus, RotateCcw, Search, Trash2 } from "lucide-vue-next";
 import { computed, onUnmounted, ref, watch } from "vue";
 
 const emit = defineEmits<{
@@ -158,38 +164,19 @@ async function processReturn() {
 </script>
 
 <template>
-	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4"
-		role="dialog"
-		aria-modal="true"
-		:aria-label="__('Manual Return')"
-		@keydown.escape="emit('close')"
-	>
-		<div
-			class="absolute inset-0 bg-black/20 dark:bg-black/50 backdrop-blur-md"
-			@click="emit('close')"
-		/>
-		<div
-			class="relative bg-white dark:bg-gray-900 rounded-xl shadow-xl dark:shadow-black/30 w-full max-w-lg max-h-[90vh] flex flex-col"
-		>
+	<Dialog :open="true" @update:open="(val) => { if (!val) emit('close') }">
+		<DialogContent class="sm:max-w-lg max-h-[90vh] p-0 gap-0 overflow-hidden flex flex-col" :show-close-button="false">
 			<!-- Header -->
-			<div
-				class="border-b border-gray-200 dark:border-gray-800 px-5 py-3 flex items-center justify-between rounded-t-xl shrink-0"
-			>
+			<DialogHeader class="border-b border-gray-200 dark:border-gray-800 px-5 py-3 flex-row items-center justify-between rounded-t-xl shrink-0 space-y-0">
 				<div class="flex items-center gap-2">
 					<RotateCcw :size="18" class="text-red-600 dark:text-red-400" />
-					<h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">
+					<DialogTitle class="text-base font-semibold text-gray-900 dark:text-gray-100">
 						{{ __("Return Items") }}
-					</h3>
+					</DialogTitle>
 				</div>
-				<button
-					@click="emit('close')"
-					class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-				>
-					<X :size="18" />
-				</button>
-			</div>
+			</DialogHeader>
 
+			<!-- Scrollable Body -->
 			<div class="flex-1 overflow-y-auto">
 				<div class="p-5 space-y-4">
 					<!-- Error -->
@@ -221,7 +208,8 @@ async function processReturn() {
 							type="text"
 							:placeholder="__('Search items to return...')"
 							autofocus
-							class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 pl-8 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 placeholder-gray-400 dark:placeholder-gray-500"
+							class="w-full pl-8 pr-3 py-2 text-sm transition-all"
+							data-slot="input"
 						/>
 
 						<!-- Search dropdown -->
@@ -308,7 +296,8 @@ async function processReturn() {
 										v-model.number="returnItems[index].qty"
 										type="number"
 										min="1"
-										class="w-14 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-red-500"
+										class="w-14 text-sm text-center transition-all"
+										data-slot="input"
 									/>
 									<button
 										@click="incrementQty(index)"
@@ -325,7 +314,8 @@ async function processReturn() {
 										type="number"
 										min="0"
 										step="0.01"
-										class="w-20 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-red-500"
+										class="w-20 text-sm text-right transition-all"
+										data-slot="input"
 									/>
 								</div>
 								<!-- Line total -->
@@ -346,7 +336,8 @@ async function processReturn() {
 						>
 						<select
 							v-model="selectedPaymentMethod"
-							class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+							class="w-full text-sm transition-all appearance-none"
+							data-slot="select"
 						>
 							<option
 								v-for="pm in settingsStore.paymentMethods"
@@ -387,6 +378,6 @@ async function processReturn() {
 					{{ processing ? __("Processing...") : __("Process Return") }}
 				</button>
 			</div>
-		</div>
-	</div>
+		</DialogContent>
+	</Dialog>
 </template>

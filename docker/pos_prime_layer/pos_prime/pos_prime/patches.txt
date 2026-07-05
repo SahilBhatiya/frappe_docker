@@ -6,3 +6,8 @@
 # Patches added in this section will be executed after doctypes are migrated
 pos_prime.patches.v1_0.add_customer_whatsapp_field
 pos_prime.patches.v1_0.enable_partial_payment_default
+pos_prime.patches.v1_0.add_referral_fields
+pos_prime.patches.v1_0.add_gst_inclusive_field
+pos_prime.patches.v1_0.setup_gst_item_taxes
+pos_prime.patches.v1_0.add_monthly_salary_field
+pos_prime.patches.v1_0.relax_employee_mandatory_fields

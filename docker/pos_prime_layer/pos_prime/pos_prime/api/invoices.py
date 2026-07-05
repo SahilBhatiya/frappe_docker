@@ -16,6 +16,7 @@ from pos_prime.api._utils import (
     validate_bundle_stock,
     set_campaign_from_profile,
 )
+from pos_prime.api._gst import apply_gst
 
 
 @frappe.whitelist()
@@ -78,6 +79,8 @@ def create_pos_invoice(
     debit_to=None,
     # Store credit
     store_credit_amount=0,
+    # Referral credit redeemed on this sale (decremented by the on_submit hook)
+    referral_credit_used=0,
     # Sales team
     sales_team=None,
 ):
@@ -174,6 +177,11 @@ def create_pos_invoice(
         invoice.discount_amount = safe_float(discount_amount)
     if coupon_code:
         invoice.coupon_code = coupon_code
+
+    # Referral credit redeemed (stored so the on_submit hook decrements it once,
+    # and on_cancel can restore it). Guard for installs without the field.
+    if safe_float(referral_credit_used) > 0 and invoice.meta.has_field("custom_referral_credit_used"):
+        invoice.custom_referral_credit_used = safe_float(referral_credit_used)
 
     # Loyalty
     if redeem_loyalty_points and loyalty_points:
@@ -278,6 +286,13 @@ def create_pos_invoice(
         available = flt(credit_data.get("total_advance", 0))
         if store_credit > available:
             store_credit = available
+
+    # Apply GST (India): resolve and set the correct GST tax template, place of
+    # supply and GSTINs from india_compliance before the tax engine runs. No-op
+    # on non-India sites, leaving the static taxes_and_charges set above intact.
+    # customer_address was already applied via set_invoice_optional_fields, so
+    # place of supply (intra vs inter-state) resolves correctly here.
+    apply_gst(invoice, profile, customer_address)
 
     invoice.flags.ignore_permissions = True
     invoice.set_missing_values()

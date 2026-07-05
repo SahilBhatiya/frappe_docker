@@ -66,6 +66,7 @@ export const useCustomerDisplayStore = defineStore('customerDisplay', () => {
   const transactions = ref<CustomerTransaction[]>([])
   const cars = ref<CustomerCar[]>([])
   const outstanding = ref<CustomerOutstanding>({ outstanding: 0, credit_limit: 0 })
+  const referral = ref<{ referred_by: string | null; referred_by_name: string | null; referral_credit: number; referred_count: number }>({ referred_by: null, referred_by_name: null, referral_credit: 0, referred_count: 0 })
   const detailLoading = ref(false)
 
   async function loadRecentCustomers(posProfile: string = '') {
@@ -141,6 +142,8 @@ export const useCustomerDisplayStore = defineStore('customerDisplay', () => {
         call('pos_prime.api.customer_profile.get_customer_outstanding', { customer: customerName, company }).catch(() => ({ outstanding: 0, credit_limit: 0 })),
       ])
 
+      referral.value = await call('pos_prime.api.customers.get_referral_summary', { customer: customerName }).catch(() => ({ referred_by: null, referred_by_name: null, referral_credit: 0, referred_count: 0 }))
+
       selectedCustomer.value = {
         name: doc.name,
         customer_name: doc.customer_name,
@@ -214,6 +217,16 @@ export const useCustomerDisplayStore = defineStore('customerDisplay', () => {
     return car
   }
 
+  async function setReferredBy(referrerName: string | null) {
+    if (!selectedCustomer.value) throw new Error('No customer selected')
+    await call('pos_prime.api.customers.update_customer_field', {
+      customer: selectedCustomer.value.name,
+      fieldname: 'custom_referred_by',
+      value: referrerName || '',
+    })
+    referral.value = await call('pos_prime.api.customers.get_referral_summary', { customer: selectedCustomer.value.name }).catch(() => referral.value)
+  }
+
   function $reset() {
     customers.value = []
     recentCustomers.value = []
@@ -228,6 +241,7 @@ export const useCustomerDisplayStore = defineStore('customerDisplay', () => {
     transactions.value = []
     cars.value = []
     outstanding.value = { outstanding: 0, credit_limit: 0 }
+    referral.value = { referred_by: null, referred_by_name: null, referral_credit: 0, referred_count: 0 }
     detailLoading.value = false
   }
 
@@ -247,6 +261,8 @@ export const useCustomerDisplayStore = defineStore('customerDisplay', () => {
     transactions,
     cars,
     outstanding,
+    referral,
+    setReferredBy,
     detailLoading,
     loadRecentCustomers,
     loadTopCustomers,

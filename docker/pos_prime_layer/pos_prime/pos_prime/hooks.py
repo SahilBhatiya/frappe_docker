@@ -10,6 +10,15 @@ app_license = "mit"
 
 required_apps = ["erpnext"]
 
+# Referral rewards: credit the referrer when a referred customer's first service
+# is billed, and decrement/restore redeemed referral credit on submit/cancel.
+doc_events = {
+	"POS Invoice": {
+		"on_submit": "pos_prime.referrals.credit_referrer_on_first_service",
+		"on_cancel": "pos_prime.referrals.restore_referral_on_cancel",
+	}
+}
+
 app_include_js = "/assets/pos_prime/js/pos_prime.js"
 
 add_to_apps_screen = [

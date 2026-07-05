@@ -220,3 +220,34 @@ def link_alignment_record(
 		},
 		"is_linked": True,
 	}
+
+
+@frappe.whitelist()
+def unlink_alignment_record(registration_number):
+	"""Remove the link between a car and its customer."""
+	validate_pos_access()
+	if not _normalize_registration(registration_number):
+		frappe.throw(_("Registration number is required"))
+
+	car = _find_car(registration_number)
+	if not car:
+		return {"is_linked": False}
+
+	customer_name = _linked_customer(car.name)
+	if not customer_name:
+		return {"is_linked": False}
+
+	customer_doc = frappe.get_doc("Customer", customer_name)
+	original_len = len(customer_doc.get("custom_cars", []))
+	customer_doc.set("custom_cars", [
+		row for row in customer_doc.get("custom_cars", []) if row.car != car.name
+	])
+	
+	if len(customer_doc.get("custom_cars", [])) < original_len:
+		customer_doc.save(ignore_permissions=True)
+
+	return {
+		"car": dict(car),
+		"customer": None,
+		"is_linked": False,
+	}

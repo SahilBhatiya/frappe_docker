@@ -421,6 +421,7 @@ async function resumeDraft(invoiceName: string) {
 		// Add items to cart
 		for (const item of draft.items || []) {
 			cartStore.items.push({
+				uid: `draft-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
 				item_code: item.item_code,
 				item_name: item.item_name,
 				rate: item.rate,

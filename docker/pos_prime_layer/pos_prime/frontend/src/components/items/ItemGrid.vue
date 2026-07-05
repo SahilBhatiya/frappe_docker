@@ -11,10 +11,9 @@ import { useBarcodeScanner } from '@/composables/useBarcodeScanner'
 import ItemCard from './ItemCard.vue'
 import ItemTableRow from './ItemTableRow.vue'
 import ItemSearch from './ItemSearch.vue'
-import ItemGroupFilter from './ItemGroupFilter.vue'
 import BatchSerialSelector from './BatchSerialSelector.vue'
 import CameraScanner from '@/components/scanner/CameraScanner.vue'
-import { Grid2X2, List, Package, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
+import { Grid2X2, List, Package } from 'lucide-vue-next'
 import { useDeskMode } from '@/composables/useDeskMode'
 import type { Item } from '@/types'
 
@@ -29,7 +28,7 @@ const columnCount = ref(4)
 const showCategories = ref(localStorage.getItem('pos_show_categories') !== 'false')
 type ViewMode = 'card' | 'table'
 const storedViewMode = localStorage.getItem('pos_item_view_mode')
-const viewMode = ref<ViewMode>(storedViewMode === 'table' ? 'table' : 'card')
+const viewMode = ref<ViewMode>(storedViewMode === 'card' ? 'card' : 'table')
 
 function setViewMode(mode: ViewMode) {
   if (viewMode.value === mode) return
@@ -37,11 +36,6 @@ function setViewMode(mode: ViewMode) {
   localStorage.setItem('pos_item_view_mode', mode)
   scrollContainer.value?.scrollTo({ top: 0, behavior: 'smooth' })
   nextTick(() => virtualizer.value.measure())
-}
-
-function toggleCategories() {
-  showCategories.value = !showCategories.value
-  localStorage.setItem('pos_show_categories', String(showCategories.value))
 }
 
 function delayedUpdateColumnCount() {
@@ -244,15 +238,6 @@ const headerLabel = computed(() => {
     <div class="flex items-center gap-2 px-3 py-2">
       <!-- Section label (like ERPNext's "All Items") -->
       <div class="hidden sm:flex items-center gap-2 shrink-0">
-        <button
-          v-if="itemsStore.itemGroups.length > 1"
-          class="hidden lg:flex items-center justify-center shrink-0 w-7 h-7 rounded-md text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          :title="showCategories ? __('Hide categories') : __('Show categories')"
-          @click="toggleCategories"
-        >
-          <PanelLeftClose v-if="showCategories" :size="16" />
-          <PanelLeftOpen v-else :size="16" />
-        </button>
         <span class="text-base font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ headerLabel }}</span>
       </div>
 
@@ -298,27 +283,7 @@ const headerLabel = computed(() => {
       </div>
     </div>
 
-    <!-- Mobile/tablet horizontal categories -->
-    <ItemGroupFilter
-      v-if="itemsStore.itemGroups.length > 1"
-      mode="mobile"
-      class="lg:hidden"
-      :groups="itemsStore.itemGroups"
-      :selected="itemsStore.selectedGroup"
-      @select="onGroupSelect"
-    />
-
     <div class="flex flex-1 overflow-hidden">
-      <!-- Desktop sidebar categories -->
-      <ItemGroupFilter
-        v-if="itemsStore.itemGroups.length > 1 && showCategories"
-        mode="desktop"
-        class="hidden lg:flex"
-        :groups="itemsStore.itemGroups"
-        :selected="itemsStore.selectedGroup"
-        @select="onGroupSelect"
-      />
-
       <div class="flex-1 flex flex-col relative overflow-hidden">
         <div
           ref="scrollContainer"

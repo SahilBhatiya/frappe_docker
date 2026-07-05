@@ -166,6 +166,10 @@ def get_customer(customer_name):
     # haven't migrated yet so get_value doesn't error on a missing column.
     if frappe.db.has_column("Customer", "custom_whatsapp"):
         fields.append("custom_whatsapp")
+    # GST fields (india_compliance). Guarded so the API works on non-India sites.
+    for gst_field in ("gstin", "gst_category"):
+        if frappe.db.has_column("Customer", gst_field):
+            fields.append(gst_field)
 
     data = frappe.db.get_value("Customer", customer_name, fields, as_dict=True)
     return data
@@ -387,6 +391,7 @@ def quick_create_customer(customer_name, mobile_no=None, email_id=None,
                           first_name=None, last_name=None,
                           address_line1=None, address_line2=None,
                           city=None, state=None, pincode=None, country=None,
+                          gstin=None, gst_category=None,
                           **extra_fields):
     """Create a customer record from the POS quick entry dialog.
 
@@ -456,8 +461,18 @@ def quick_create_customer(customer_name, mobile_no=None, email_id=None,
     if country:
         doc_data["country"] = country
 
-    # Apply any extra quick_entry fields (e.g. custom_nic_number)
     meta = frappe.get_meta("Customer")
+
+    # GST (india_compliance). GSTIN is validated by india_compliance on insert.
+    # A registered GSTIN implies a registered category if none was supplied.
+    if gstin and meta.has_field("gstin"):
+        doc_data["gstin"] = str(gstin).strip().upper()
+        if not gst_category:
+            gst_category = "Registered Regular"
+    if gst_category and meta.has_field("gst_category"):
+        doc_data["gst_category"] = gst_category
+
+    # Apply any extra quick_entry fields (e.g. custom_nic_number)
     allowed_quick = {
         f.fieldname for f in meta.fields
         if (f.reqd or f.allow_in_quick_entry)
@@ -467,6 +482,17 @@ def quick_create_customer(customer_name, mobile_no=None, email_id=None,
     for key, value in extra_fields.items():
         if key in allowed_quick and value:
             doc_data[key] = value
+
+    # Referral capture: record who referred this customer (read-only field, so it
+    # isn't picked up by the quick-entry loop above).
+    referred_by = extra_fields.get("custom_referred_by")
+    if (
+        referred_by
+        and meta.has_field("custom_referred_by")
+        and referred_by != customer_name
+        and frappe.db.exists("Customer", referred_by)
+    ):
+        doc_data["custom_referred_by"] = referred_by
 
     customer = frappe.get_doc(doc_data)
     customer.insert(ignore_permissions=True)
@@ -484,7 +510,7 @@ def update_customer_field(customer, fieldname, value=""):
     """
     validate_pos_access()
 
-    allowed_fields = {"email_id", "mobile_no", "loyalty_program", "custom_whatsapp"}
+    allowed_fields = {"email_id", "mobile_no", "loyalty_program", "custom_whatsapp", "custom_referred_by", "gstin", "gst_category"}
     if fieldname not in allowed_fields:
         frappe.throw(_("Field {0} cannot be updated from POS").format(fieldname))
 
@@ -496,9 +522,26 @@ def update_customer_field(customer, fieldname, value=""):
         if not re.match(email_pattern, value):
             frappe.throw(_("Invalid email address format"))
 
+    if fieldname == "custom_referred_by":
+        if value and value == customer:
+            frappe.throw(_("A customer cannot be referred by themselves"))
+        if value and not frappe.db.exists("Customer", value):
+            frappe.throw(_("Referrer {0} does not exist").format(value))
+
+    # GST fields go through the Customer doc so india_compliance validates the
+    # GSTIN format/checksum and keeps gst_category consistent.
+    if fieldname in ("gstin", "gst_category"):
+        cust_doc = frappe.get_doc("Customer", customer)
+        new_value = (value or "").strip().upper() if fieldname == "gstin" else (value or None)
+        cust_doc.set(fieldname, new_value or None)
+        if fieldname == "gstin" and new_value and not cust_doc.get("gst_category"):
+            cust_doc.gst_category = "Registered Regular"
+        cust_doc.save(ignore_permissions=True)
+        return customer
+
     # Plain Customer fields (not mirrored onto the primary Contact).
-    if fieldname in ("loyalty_program", "custom_whatsapp"):
-        frappe.db.set_value("Customer", customer, fieldname, value)
+    if fieldname in ("loyalty_program", "custom_whatsapp", "custom_referred_by"):
+        frappe.db.set_value("Customer", customer, fieldname, value or None)
         return customer
 
     # Get or create primary contact (same logic as ERPNext's set_customer_info)
@@ -540,3 +583,27 @@ def update_customer_field(customer, fieldname, value=""):
     contact_doc.save(ignore_permissions=True)
 
     return customer
+
+
+@frappe.whitelist()
+def get_referral_summary(customer):
+    """Referral info for a customer: who referred them, their accrued referral
+    credit (as a referrer), and how many customers they've referred."""
+    validate_pos_access()
+    if not frappe.db.exists("Customer", customer):
+        frappe.throw(_("Customer {0} does not exist").format(customer))
+
+    meta = frappe.get_meta("Customer")
+    if not meta.has_field("custom_referred_by"):
+        return {"referred_by": None, "referred_by_name": None, "referral_credit": 0, "referred_count": 0}
+
+    referred_by = frappe.db.get_value("Customer", customer, "custom_referred_by")
+    referred_by_name = (
+        frappe.db.get_value("Customer", referred_by, "customer_name") if referred_by else None
+    )
+    return {
+        "referred_by": referred_by,
+        "referred_by_name": referred_by_name,
+        "referral_credit": flt(frappe.db.get_value("Customer", customer, "custom_referral_credit")),
+        "referred_count": frappe.db.count("Customer", {"custom_referred_by": customer}),
+    }

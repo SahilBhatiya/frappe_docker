@@ -3,10 +3,20 @@
 
 <script setup lang="ts">
 import Input from "@/components/ui/input/Input.vue";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import type { CustomerCar } from "@/types";
 import { useCurrency } from "@/composables/useCurrency";
 import { useCustomerStore } from "@/stores/customer";
 import { usePosSessionStore } from "@/stores/posSession";
 import { deskUrl } from "@/utils/deskUrl";
+import { fetchAlignmentReports, type AlignmentReport } from "@/services/alignmentHistory";
 import { call } from "frappe-ui";
 import {
   AlertTriangle,
@@ -14,6 +24,8 @@ import {
   CreditCard,
   ExternalLink,
   FileText,
+  Link2,
+  Loader2,
   Mail,
   MapPin,
   MessageCircle,
@@ -23,7 +35,7 @@ import {
   Wallet,
   X,
 } from "lucide-vue-next";
-import { onMounted, ref, watch } from "vue";
+import { onMounted, reactive, ref, watch } from "vue";
 
 const emit = defineEmits<{ close: [] }>();
 const customerStore = useCustomerStore();
@@ -37,9 +49,29 @@ const editWhatsapp = ref("");
 const editLoyaltyProgram = ref("");
 const savingField = ref<string | null>(null);
 
+// Tabs
+const activeTab = ref('cars');
+
 // Transactions
 const transactions = ref<any[]>([]);
 const loadingTx = ref(false);
+
+// Recent alignment records
+const alignmentRecords = ref<AlignmentReport[]>([]);
+const loadingAlignment = ref(false);
+const linkingRecord = ref<string | null>(null);
+
+// Car detail dialog
+const carDialogOpen = ref(false);
+const selectedCar = ref<CustomerCar | null>(null);
+const carForm = reactive({
+	registration_number: "",
+	make_model: "",
+	current_odometer: 0,
+	monthly_driven: 0,
+	notes: "",
+});
+const savingCar = ref(false);
 
 // Keep the editable inputs in sync with the store REACTIVELY. A one-time copy in
 // onMounted left the fields blank when the panel mounted before the customer's
@@ -67,6 +99,7 @@ watch(
 
 onMounted(async () => {
 	await fetchTransactions();
+	await fetchRecentAlignmentRecords();
 });
 
 async function fetchTransactions() {
@@ -84,6 +117,67 @@ async function fetchTransactions() {
 	} finally {
 		loadingTx.value = false;
 	}
+}
+
+async function fetchRecentAlignmentRecords() {
+	loadingAlignment.value = true;
+	try {
+		const result = await fetchAlignmentReports(1, 5);
+		alignmentRecords.value = result.reports;
+	} catch {
+		alignmentRecords.value = [];
+	} finally {
+		loadingAlignment.value = false;
+	}
+}
+
+async function linkAlignmentToCar(record: AlignmentReport) {
+	if (!customerStore.customer || !record.vehicle_registration) return;
+	linkingRecord.value = record.report_id;
+	try {
+		const makeModel = [record.manufacturer_name, record.model_name, record.model_year_raw]
+			.filter(Boolean)
+			.join(" ");
+		await call("pos_prime.api.alignment.link_alignment_record", {
+			report_id: record.report_id,
+			registration_number: record.vehicle_registration,
+			customer: customerStore.customer.name,
+			customer_name: customerStore.customer.customer_name,
+			customer_phone: customerStore.customer.mobile_no || "",
+			make_model: makeModel,
+			current_odometer: record.mileage_raw || 0,
+		});
+		// Refresh cars list
+		await customerStore.setCustomer(customerStore.customer.name);
+		// Remove linked record from list
+		alignmentRecords.value = alignmentRecords.value.filter(
+			(r) => r.report_id !== record.report_id,
+		);
+		const frappe = (window as any).frappe;
+		frappe?.show_alert?.({
+			message: __("Car linked to customer!"),
+			indicator: "green",
+		});
+	} catch (e: any) {
+		const frappe = (window as any).frappe;
+		frappe?.show_alert?.({
+			message: e?.messages?.[0] || __("Could not link car"),
+			indicator: "red",
+		});
+	} finally {
+		linkingRecord.value = null;
+	}
+}
+
+function formatAlignmentDate(value?: string | null): string {
+	if (!value) return "";
+	const compact = value.match(/^(\d{4})(\d{2})(\d{2})$/);
+	const parsed = compact
+		? new Date(`${compact[1]}-${compact[2]}-${compact[3]}T00:00:00`)
+		: new Date(value);
+	return Number.isNaN(parsed.getTime())
+		? value
+		: new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" }).format(parsed);
 }
 
 async function saveField(fieldname: string) {
@@ -136,9 +230,52 @@ function openWhatsapp(num: string) {
 	window.open(waLink(num), "_blank", "noopener");
 }
 
-function openCar(name: string | null) {
+function openCar(car: CustomerCar) {
+	selectedCar.value = car;
+	carForm.registration_number = car.registration_number || "";
+	carForm.make_model = car.make_model || "";
+	carForm.current_odometer = car.current_odometer || 0;
+	carForm.monthly_driven = car.monthly_driven || 0;
+	carForm.notes = car.notes || "";
+	carDialogOpen.value = true;
+}
+
+function openCarExternal(name: string | null) {
 	if (!name) return;
 	window.open(deskUrl(`customer-car/${encodeURIComponent(name)}`), "_blank");
+}
+
+async function saveCarDetails() {
+	if (!selectedCar.value?.name) return;
+	savingCar.value = true;
+	try {
+		await call("pos_prime.api.customers.update_car", {
+			car_name: selectedCar.value.name,
+			registration_number: carForm.registration_number.trim(),
+			make_model: carForm.make_model.trim(),
+			current_odometer: carForm.current_odometer || 0,
+			monthly_driven: carForm.monthly_driven || 0,
+			notes: carForm.notes.trim(),
+		});
+		// Refresh cars list
+		if (customerStore.customer) {
+			await customerStore.setCustomer(customerStore.customer.name);
+		}
+		carDialogOpen.value = false;
+		const frappe = (window as any).frappe;
+		frappe?.show_alert?.({
+			message: __("Car details saved!"),
+			indicator: "green",
+		});
+	} catch (e: any) {
+		const frappe = (window as any).frappe;
+		frappe?.show_alert?.({
+			message: e?.messages?.[0] || __("Could not save car details"),
+			indicator: "red",
+		});
+	} finally {
+		savingCar.value = false;
+	}
 }
 
 function formatKm(n: number): string {
@@ -464,107 +601,154 @@ function timeAgo(dateStr: string): string {
 					</div>
 				</div>
 
-				<!-- Cars -->
-				<div
-					v-if="customerStore.cars.length > 0"
-					class="px-4 py-3 border-b border-gray-100 dark:border-gray-800"
+				<!-- Tabs -->
+				<Tabs
+					:model-value="activeTab"
+					@update:model-value="(val) => activeTab = String(val)"
+					class="w-full !flex-col"
 				>
-					<div
-						class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2"
-					>
-						{{ __("Cars") }}
+					<div class="px-4 py-2">
+						<TabsList class="grid w-full grid-cols-2">
+							<TabsTrigger value="cars">
+								<Car :size="13" />
+								{{ __("Cars") }}
+								<span
+									v-if="customerStore.cars.length > 0"
+									class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200"
+								>{{ customerStore.cars.length }}</span>
+							</TabsTrigger>
+							<TabsTrigger value="transactions">
+								<FileText :size="13" />
+								{{ __("Transactions") }}
+								<span
+									v-if="transactions.length > 0"
+									class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200"
+								>{{ transactions.length }}</span>
+							</TabsTrigger>
+						</TabsList>
 					</div>
-					<div class="space-y-1.5">
-						<button
-							v-for="(c, i) in customerStore.cars"
-							:key="c.name || i"
-							type="button"
-							@click="openCar(c.name)"
-							:disabled="!c.name"
-							class="w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors group"
-							:class="
-								c.name
-									? 'hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer'
-									: 'cursor-default'
-							"
-						>
-							<div
-								class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 mt-0.5"
-							>
-								<Car :size="14" class="text-gray-500 dark:text-gray-400" />
-							</div>
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-1.5">
-									<span
-										class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate"
-									>
-										{{ c.registration_number || c.make_model || __("Car") }}
-									</span>
-									<span
-										v-if="c.registration_number && c.make_model"
-										class="text-xs text-gray-500 dark:text-gray-400 truncate"
-									>
-										· {{ c.make_model }}
-									</span>
-								</div>
-								<div
-									v-if="c.current_odometer || c.monthly_driven"
-									class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5"
-								>
-									<span v-if="c.current_odometer"
-										>{{ formatKm(c.current_odometer) }} {{ __("km") }}</span
-									>
-									<span v-if="c.current_odometer && c.monthly_driven"> · </span>
-									<span v-if="c.monthly_driven"
-										>~{{ formatKm(c.monthly_driven) }}/{{ __("mo") }}</span
-									>
-								</div>
-								<div
-									v-if="c.notes"
-									class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate"
-								>
-									{{ c.notes }}
-								</div>
-							</div>
-							<ExternalLink
-								v-if="c.name"
-								:size="12"
-								class="text-gray-300 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-100 shrink-0 mt-1"
-							/>
-						</button>
-					</div>
-				</div>
 
-				<!-- Recent Transactions -->
-				<div class="px-4 py-3">
+				<!-- Cars Tab -->
+				<TabsContent value="cars" class="mt-0">
+					<div class="px-4 py-3 space-y-4">
+						<!-- Customer's own cars -->
+						<div>
+							<div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+								{{ __("Customer Cars") }}
+							</div>
+							<div v-if="customerStore.cars.length === 0" class="py-4 text-center">
+								<Car :size="22" class="text-gray-300 dark:text-gray-600 mx-auto mb-1" />
+								<span class="text-xs text-gray-400 dark:text-gray-500">{{ __("No cars linked") }}</span>
+							</div>
+							<div v-else class="space-y-1.5">
+								<button
+									v-for="(c, i) in customerStore.cars"
+									:key="c.name || i"
+									type="button"
+									@click="openCar(c)"
+									class="w-full flex items-start gap-2.5 px-2.5 py-2 rounded-lg text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group cursor-pointer"
+								>
+									<div class="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0 mt-0.5">
+										<Car :size="14" class="text-gray-500 dark:text-gray-400" />
+									</div>
+									<div class="flex-1 min-w-0">
+										<div class="flex items-center gap-1.5">
+											<span class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+												{{ c.registration_number || c.make_model || __("Car") }}
+											</span>
+											<span v-if="c.registration_number && c.make_model" class="text-xs text-gray-500 dark:text-gray-400 truncate">
+												&middot; {{ c.make_model }}
+											</span>
+										</div>
+										<div v-if="c.current_odometer || c.monthly_driven" class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+											<span v-if="c.current_odometer">{{ formatKm(c.current_odometer) }} {{ __("km") }}</span>
+											<span v-if="c.current_odometer && c.monthly_driven"> &middot; </span>
+											<span v-if="c.monthly_driven">~{{ formatKm(c.monthly_driven) }}/{{ __("mo") }}</span>
+										</div>
+										<div v-if="c.notes" class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{{ c.notes }}</div>
+									</div>
+									<!-- External link as separate button -->
+									<button
+										v-if="c.name"
+										type="button"
+										@click.stop="openCarExternal(c.name)"
+										class="shrink-0 mt-1 w-5 h-5 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+										:title="__('Open in Frappe')"
+									>
+										<ExternalLink :size="11" class="text-gray-400 dark:text-gray-500" />
+									</button>
+								</button>
+							</div>
+						</div>
+
+						<!-- Recent Alignment Records -->
+						<div class="border-t border-gray-100 dark:border-gray-800 pt-3">
+							<div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
+								{{ __("Recent Alignment Records") }}
+							</div>
+							<div v-if="loadingAlignment" class="py-4 text-center">
+								<Loader2 :size="18" class="text-gray-300 dark:text-gray-600 mx-auto animate-spin" />
+							</div>
+							<div v-else-if="alignmentRecords.length === 0" class="py-4 text-center">
+								<span class="text-xs text-gray-400 dark:text-gray-500">{{ __("No recent alignment records") }}</span>
+							</div>
+							<div v-else class="space-y-1.5">
+								<div
+									v-for="rec in alignmentRecords"
+									:key="rec.report_id"
+									class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60"
+								>
+									<div class="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+										<Car :size="14" class="text-blue-500 dark:text-blue-400" />
+									</div>
+									<div class="flex-1 min-w-0">
+										<div class="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">
+											{{ rec.vehicle_registration || __("Unknown Plate") }}
+										</div>
+										<div class="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+											<span v-if="rec.manufacturer_name || rec.model_name">
+												{{ [rec.manufacturer_name, rec.model_name].filter(Boolean).join(" ") }}
+												<span v-if="rec.report_date_raw"> &middot; </span>
+											</span>
+											{{ formatAlignmentDate(rec.report_date_raw) }}
+										</div>
+									</div>
+									<button
+										v-if="rec.vehicle_registration"
+										type="button"
+										@click="linkAlignmentToCar(rec)"
+										:disabled="linkingRecord === rec.report_id"
+										class="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-[10px] font-semibold hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 transition-colors"
+									>
+										<Loader2 v-if="linkingRecord === rec.report_id" :size="10" class="animate-spin" />
+										<Link2 v-else :size="10" />
+										{{ __("Link") }}
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</TabsContent>
+
+				<!-- Transactions Tab -->
+				<TabsContent value="transactions" class="mt-0">
+					<div class="px-4 py-3">
 					<div class="flex items-center justify-between mb-2">
-						<div
-							class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider"
-						>
+						<div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
 							{{ __("Recent Transactions") }}
 						</div>
-						<span
-							v-if="transactions.length > 0"
-							class="text-[10px] text-gray-400 dark:text-gray-500"
-						>
+						<span v-if="transactions.length > 0" class="text-[10px] text-gray-400 dark:text-gray-500">
 							{{ __("Last") }}: {{ timeAgo(transactions[0]?.posting_date) }}
 						</span>
 					</div>
 
 					<div v-if="loadingTx" class="py-6 text-center">
-						<span class="text-xs text-gray-400 dark:text-gray-500">{{
-							__("Loading...")
-						}}</span>
+						<span class="text-xs text-gray-400 dark:text-gray-500">{{ __("Loading...") }}</span>
 					</div>
 
 					<div v-else-if="transactions.length === 0" class="py-6 text-center">
-						<FileText
-							:size="24"
-							class="text-gray-300 dark:text-gray-600 mx-auto mb-1"
-						/>
-						<span class="text-xs text-gray-400 dark:text-gray-500">{{
-							__("No transactions found")
-						}}</span>
+						<FileText :size="24" class="text-gray-300 dark:text-gray-600 mx-auto mb-1" />
+						<span class="text-xs text-gray-400 dark:text-gray-500">{{ __("No transactions found") }}</span>
 					</div>
 
 					<div v-else class="space-y-1">
@@ -576,16 +760,11 @@ function timeAgo(dateStr: string): string {
 						>
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-1.5">
-									<span
-										class="text-xs font-semibold text-gray-800 dark:text-gray-200"
-										>{{ tx.name }}</span
-									>
+									<span class="text-xs font-semibold text-gray-800 dark:text-gray-200">{{ tx.name }}</span>
 									<span
 										class="inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold"
 										:class="statusColor(tx.status, tx.is_return)"
-									>
-										{{ tx.is_return ? __("Return") : tx.status }}
-									</span>
+									>{{ tx.is_return ? __("Return") : tx.status }}</span>
 								</div>
 								<div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
 									{{ formatDate(tx.posting_date) }}
@@ -594,30 +773,87 @@ function timeAgo(dateStr: string): string {
 							<div class="text-right shrink-0">
 								<div
 									class="text-sm font-bold"
-									:class="
-										tx.is_return
-											? 'text-red-600 dark:text-red-400'
-											: 'text-gray-800 dark:text-gray-200'
-									"
-								>
-									{{ tx.is_return ? "-" : ""
-									}}{{ formatCurrency(tx.grand_total) }}
-								</div>
-								<div class="text-[10px] text-gray-400 dark:text-gray-500">
-									{{ tx.total_qty }} {{ __("items") }}
-								</div>
+									:class="tx.is_return ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'"
+								>{{ tx.is_return ? "-" : "" }}{{ formatCurrency(tx.grand_total) }}</div>
+								<div class="text-[10px] text-gray-400 dark:text-gray-500">{{ tx.total_qty }} {{ __("items") }}</div>
 							</div>
-							<ExternalLink
-								:size="12"
-								class="text-gray-300 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-100 shrink-0"
-							/>
+							<ExternalLink :size="12" class="text-gray-300 dark:text-gray-600 group-hover:text-gray-950 dark:group-hover:text-gray-100 shrink-0" />
 						</button>
 					</div>
-				</div>
+					</div>
+				</TabsContent>
+				</Tabs>
 			</div>
 		</div>
 	</div>
+
+		<!-- Car Detail Dialog -->
+		<Dialog :open="carDialogOpen" @update:open="carDialogOpen = $event">
+			<DialogContent class="sm:max-w-sm">
+				<DialogHeader>
+					<div class="flex items-center gap-2.5">
+						<div class="w-9 h-9 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+							<Car :size="18" class="text-gray-600 dark:text-gray-300" />
+						</div>
+						<div>
+							<DialogTitle class="text-base font-bold text-gray-900 dark:text-gray-100">
+								{{ carForm.registration_number || __('Car Details') }}
+							</DialogTitle>
+							<p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ __('Edit car information') }}</p>
+						</div>
+					</div>
+				</DialogHeader>
+
+				<div class="space-y-3 mt-1">
+					<!-- Registration Number -->
+					<div>
+						<label class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">{{ __('Registration Number') }}</label>
+						<Input v-model="carForm.registration_number" type="text" :placeholder="__('e.g. GJ02CA6176')" class="w-full text-sm font-mono uppercase" />
+					</div>
+
+					<!-- Make / Model -->
+					<div>
+						<label class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">{{ __('Make / Model') }}</label>
+						<Input v-model="carForm.make_model" type="text" :placeholder="__('e.g. Maruti Suzuki Ertiga')" class="w-full text-sm" />
+					</div>
+
+					<!-- Odometer + Monthly -->
+					<div class="grid grid-cols-2 gap-3">
+						<div>
+							<label class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">{{ __('Odometer (km)') }}</label>
+							<Input v-model.number="carForm.current_odometer" type="number" min="0" :placeholder="__('e.g. 45000')" class="w-full text-sm" />
+						</div>
+						<div>
+							<label class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">{{ __('Monthly (km)') }}</label>
+							<Input v-model.number="carForm.monthly_driven" type="number" min="0" :placeholder="__('e.g. 1200')" class="w-full text-sm" />
+						</div>
+					</div>
+
+					<!-- Notes -->
+					<div>
+						<label class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide block mb-1">{{ __('Notes') }}</label>
+						<textarea
+							v-model="carForm.notes"
+							:placeholder="__('Any additional notes...')"
+							rows="2"
+							class="w-full text-sm text-gray-800 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-950 focus:border-gray-950 dark:focus:ring-gray-300 dark:focus:border-gray-300 transition-colors resize-none placeholder-gray-400 dark:placeholder-gray-500"
+						/>
+					</div>
+				</div>
+
+				<DialogFooter class="mt-2 flex gap-2">
+					<button type="button" @click="carDialogOpen = false" class="flex-1 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+						{{ __('Cancel') }}
+					</button>
+					<button type="button" @click="saveCarDetails" :disabled="savingCar" class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white bg-gray-900 dark:bg-gray-100 dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-300 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5">
+						<Loader2 v-if="savingCar" :size="13" class="animate-spin" />
+						{{ savingCar ? __('Saving...') : __('Save') }}
+					</button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 </template>
+
 
 <style>
 .customer-drawer-enter-active,
