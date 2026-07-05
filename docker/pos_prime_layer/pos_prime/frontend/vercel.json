@@ -17,7 +17,27 @@
       "destination": "/api/frappe-proxy?path=:path*"
     },
     {
-      "source": "/((?!api/|files/).*)",
+      "source": "/printview",
+      "destination": "/api/frappe-forward?__fp=/printview"
+    },
+    {
+      "source": "/api/resource/:path*",
+      "destination": "/api/frappe-forward?__fp=/api/resource/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/api/frappe-forward?__fp=/assets/:path*"
+    },
+    {
+      "source": "/files/:path*",
+      "destination": "/api/frappe-forward?__fp=/files/:path*"
+    },
+    {
+      "source": "/private/:path*",
+      "destination": "/api/frappe-forward?__fp=/private/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
