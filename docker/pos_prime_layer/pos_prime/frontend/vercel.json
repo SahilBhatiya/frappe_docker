@@ -17,7 +17,7 @@
       "destination": "/api/frappe-proxy?path=:path*"
     },
     {
-      "source": "/pos-prime/:path*",
+      "source": "/((?!api/|files/).*)",
       "destination": "/index.html"
     }
   ]
